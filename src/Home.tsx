@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 
 const icons = {
   user: <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>,
@@ -13,6 +13,26 @@ const icons = {
 };
 
 export default function Home({ onCall, onReception, onFriendList }: { onCall: () => void, onReception?: () => void, onFriendList: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      // 動画の読み込み完了後に再生を試行
+      const handleLoadedData = () => {
+        video.play().catch(error => {
+          console.log('Video autoplay failed:', error);
+        });
+      };
+      
+      video.addEventListener('loadeddata', handleLoadedData);
+      
+      return () => {
+        video.removeEventListener('loadeddata', handleLoadedData);
+      };
+    }
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-white home-font relative">
       {/* 背景画像 */}
@@ -35,8 +55,20 @@ export default function Home({ onCall, onReception, onFriendList }: { onCall: ()
 
       {/* メイン */}
       <main className="flex-1 flex flex-col items-center px-2 pb-24 pt-2 relative z-10">
-        <div className="w-full h-48 bg-black rounded-xl mb-16 flex items-center justify-center">
-          <span className="text-white text-xl font-medium">Tutorial Movie</span>
+        <div className="w-full h-48 bg-black rounded-xl mb-16 flex items-center justify-center overflow-hidden">
+          <video 
+            ref={videoRef}
+            className="w-full h-full object-cover"
+            autoPlay 
+            muted 
+            loop 
+            playsInline
+            controls
+            preload="auto"
+          >
+            <source src="/nois-tutorial.mp4" type="video/mp4" />
+            <span className="text-white text-xl font-medium">Tutorial Movie</span>
+          </video>
         </div>
         <div className="w-full flex flex-col gap-4 items-center">
           <button onClick={onFriendList} className="w-full max-w-sm flex flex-row items-center justify-center border-2 border-slate-300 rounded-xl py-3 bg-white shadow-md active:scale-95 transition-all gap-2">
