@@ -93,7 +93,6 @@ export async function translate(
   to: Lang,
   mode: Translator
 ): Promise<string> {
-  // 後で `to === "auto"` をチェックできなくなり TS2367 が出るため除外している。
   if (mode === "none" || (from !== "auto" && from === to)) {
     return text;
   }
