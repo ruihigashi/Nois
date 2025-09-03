@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const icons = {
   user: <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>,
@@ -12,8 +13,9 @@ const icons = {
   settings: <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
 };
 
-export default function Home({ onCall, onReception, onFriendList }: { onCall: () => void, onReception?: () => void, onFriendList: () => void }) {
+export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const video = videoRef.current;
@@ -71,16 +73,16 @@ export default function Home({ onCall, onReception, onFriendList }: { onCall: ()
           </video>
         </div>
         <div className="w-full flex flex-col gap-4 items-center">
-          <button onClick={onFriendList} className="w-full max-w-sm flex flex-row items-center justify-center border-2 border-slate-300 rounded-xl py-3 bg-white shadow-md active:scale-95 transition-all gap-2">
+          <button onClick={() => navigate('/friends')} className="w-full max-w-sm flex flex-row items-center justify-center border-2 border-slate-300 rounded-xl py-3 bg-white shadow-md active:scale-95 transition-all gap-2">
             <img src="/friend-icon.png" alt="friend" className="w-7 h-7 object-contain" />
             <span className="text-2xl font-extrabold bg-gradient-to-r from-sky-400 to-slate-500 bg-clip-text text-transparent tracking-tight">Friend List</span>
           </button>
           <div className="w-full max-w-sm grid grid-cols-2 gap-4">
-            <button onClick={onCall} className="flex flex-row items-center justify-center border-2 border-slate-300 rounded-xl py-3 bg-white shadow-md active:scale-95 transition-all gap-2">
+            <button onClick={() => navigate('/caller')} className="flex flex-row items-center justify-center border-2 border-slate-300 rounded-xl py-3 bg-white shadow-md active:scale-95 transition-all gap-2">
               <img src="/call-icon.png" alt="call" className="w-7 h-7 object-contain" />
               <span className="text-xl font-extrabold bg-gradient-to-r from-slate-600 to-slate-400 bg-clip-text text-transparent">Call</span>
             </button>
-            <button onClick={onReception} className="flex flex-row items-center justify-center border-2 border-slate-300 rounded-xl py-3 bg-white shadow-md active:scale-95 transition-all gap-2">
+            <button onClick={() => navigate('/reception')} className="flex flex-row items-center justify-center border-2 border-slate-300 rounded-xl py-3 bg-white shadow-md active:scale-95 transition-all gap-2">
               <img src="/reception-icon.png" alt="reception" className="w-10 h-10 object-contain" />
               <span className="text-xl font-extrabold bg-gradient-to-r from-slate-600 to-slate-400 bg-clip-text text-transparent">reception</span>
             </button>

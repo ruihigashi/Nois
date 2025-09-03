@@ -1,25 +1,10 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import Home from './Home'
-import Caller from './Caller'
-import Answer from './Answer'
+import AppRoutes from './router/Route'
 import './index.css'
 
 function Root() {
-  const [page, setPage] = React.useState<'home' | 'caller' | 'answer'>('home')
-
-  const handleBack = () => setPage('home')
-
-  if (page === 'caller') return <Caller onBack={handleBack} />
-  if (page === 'answer') return <Answer onBack={handleBack} />
-
-  return (
-    <Home
-      onCall={() => setPage('caller')}
-      onReception={() => setPage('answer')}
-      onFriendList={() => console.log('Friend List ボタンが押されました')} // ✅ 追加
-    />
-  )
+  return <AppRoutes />
 }
 
 createRoot(document.getElementById('root')!).render(
