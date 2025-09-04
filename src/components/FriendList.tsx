@@ -6,7 +6,7 @@ export default function FriendList() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-white p-2 md:p-4 overflow-hidden relative">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 p-2 md:p-4 overflow-hidden relative">
       {/* ヘッダー */}
       <Header 
         headerTitle="Friend List" 
@@ -16,12 +16,12 @@ export default function FriendList() {
       />
 
       {/* メインコンテンツエリア（真っ白） */}
-      <main className="flex-1 bg-white relative z-10">
+      <main className="flex-1 bg-white/5 backdrop-blur-sm relative z-10">
         {/* ここに新しいコンテンツを追加できます */}
       </main>
       
       {/* ナビゲーションバー（フッター） */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around items-center h-16 z-20">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/10 backdrop-blur-md border-t border-blue-300/30 flex justify-around items-center h-16 z-20">
         <button className="flex flex-col items-center"><img src="/home.png" alt="home" className="w-7 h-7 object-contain" /></button>
         <button className="flex flex-col items-center"><img src="/discover-icon.png" alt="discover" className="w-7 h-7 object-contain" /></button>
         <div className="flex flex-col items-center justify-center">

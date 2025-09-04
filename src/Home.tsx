@@ -36,7 +36,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-white home-font relative">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 home-font relative">
       {/* 背景画像 */}
       <div 
         className="absolute inset-0 z-0"
@@ -51,13 +51,13 @@ export default function Home() {
       />
       {/* ヘッダー */}
       <header className="flex items-center justify-between px-4 pt-4 pb-2 mb-6 border-b border-slate-200 overflow-visible relative z-10">
-            <div className="text-3xl font-extrabold pr-1 bg-gradient-to-r from-sky-400 to-slate-500 bg-clip-text text-transparent drop-shadow-sm select-none" style={{letterSpacing:'-1px'}}>Nois</div>
-        <div className="text-slate-500">{icons.user}</div>
+            <div className="text-3xl font-extrabold pr-1 bg-gradient-to-r from-cyan-300 to-blue-200 bg-clip-text text-transparent drop-shadow-sm select-none" style={{letterSpacing:'-1px'}}>Nois</div>
+        <div className="text-cyan-300">{icons.user}</div>
       </header>
 
       {/* メイン */}
       <main className="flex-1 flex flex-col items-center px-2 pb-24 pt-2 relative z-10">
-        <div className="w-full h-48 bg-black rounded-xl mb-16 flex items-center justify-center overflow-hidden">
+        <div className="w-full h-48 bg-black/50 backdrop-blur-sm rounded-xl mb-16 flex items-center justify-center overflow-hidden border border-blue-300/30">
           <video 
             ref={videoRef}
             className="w-full h-full object-cover"
@@ -73,25 +73,25 @@ export default function Home() {
           </video>
         </div>
         <div className="w-full flex flex-col gap-4 items-center">
-          <button onClick={() => navigate('/friends')} className="w-full max-w-sm flex flex-row items-center justify-center border-2 border-slate-300 rounded-xl py-3 bg-white shadow-md active:scale-95 transition-all gap-2">
+          <button onClick={() => navigate('/friends')} className="w-full max-w-sm flex flex-row items-center justify-center border-2 border-blue-300/50 rounded-xl py-3 bg-white/10 backdrop-blur-sm shadow-md active:scale-95 transition-all gap-2">
             <img src="/friend-icon.png" alt="friend" className="w-7 h-7 object-contain" />
-            <span className="text-2xl font-extrabold bg-gradient-to-r from-sky-400 to-slate-500 bg-clip-text text-transparent tracking-tight">Friend List</span>
+            <span className="text-2xl font-extrabold bg-gradient-to-r from-cyan-300 to-blue-200 bg-clip-text text-transparent tracking-tight">Friend List</span>
           </button>
           <div className="w-full max-w-sm grid grid-cols-2 gap-4">
-            <button onClick={() => navigate('/caller')} className="flex flex-row items-center justify-center border-2 border-slate-300 rounded-xl py-3 bg-white shadow-md active:scale-95 transition-all gap-2">
+            <button onClick={() => navigate('/caller')} className="flex flex-row items-center justify-center border-2 border-blue-300/50 rounded-xl py-3 bg-white/10 backdrop-blur-sm shadow-md active:scale-95 transition-all gap-2">
               <img src="/call-icon.png" alt="call" className="w-7 h-7 object-contain" />
-              <span className="text-xl font-extrabold bg-gradient-to-r from-slate-600 to-slate-400 bg-clip-text text-transparent">Call</span>
+              <span className="text-xl font-extrabold bg-gradient-to-r from-blue-200 to-cyan-300 bg-clip-text text-transparent">Call</span>
             </button>
-            <button onClick={() => navigate('/reception')} className="flex flex-row items-center justify-center border-2 border-slate-300 rounded-xl py-3 bg-white shadow-md active:scale-95 transition-all gap-2">
+            <button onClick={() => navigate('/reception')} className="flex flex-row items-center justify-center border-2 border-blue-300/50 rounded-xl py-3 bg-white/10 backdrop-blur-sm shadow-md active:scale-95 transition-all gap-2">
               <img src="/reception-icon.png" alt="reception" className="w-10 h-10 object-contain" />
-              <span className="text-xl font-extrabold bg-gradient-to-r from-slate-600 to-slate-400 bg-clip-text text-transparent">reception</span>
+              <span className="text-xl font-extrabold bg-gradient-to-r from-purple-200 to-pink-300 bg-clip-text text-transparent">reception</span>
             </button>
           </div>
         </div>
       </main>
 
       {/* ナビゲーションバー */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around items-center h-16 z-20">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/10 backdrop-blur-md border-t border-blue-300/30 flex justify-around items-center h-16 z-20">
         <button className="flex flex-col items-center"><img src="/home.png" alt="home" className="w-7 h-7 object-contain" /></button>
         <button className="flex flex-col items-center"><img src="/discover-icon.png" alt="discover" className="w-7 h-7 object-contain" /></button>
         <div className="flex flex-col items-center justify-center">

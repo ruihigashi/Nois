@@ -495,7 +495,7 @@ export default function App({ forcedRole }: AppProps = {}) {
   }
 
   return (
-    <div className={`min-h-screen ${page==='call' ? 'bg-white' : 'bg-gradient-to-br from-slate-100 to-slate-200'} p-2 md:p-4 overflow-hidden relative`}>
+    <div className={`min-h-screen ${page==='call' ? 'bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900' : 'bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900'} p-2 md:p-4 overflow-hidden relative`}>
       {/* 背景画像 - CallとReception画面にのみ表示 */}
       {page === 'call' && (
         <div 
@@ -511,7 +511,7 @@ export default function App({ forcedRole }: AppProps = {}) {
         />
       )}
       {/* Call/Recepton は背景を白にしてコンテンツと分離しない */}
-      <div className={`h-full flex flex-col relative z-10 ${page==='call' ? 'mx-0 w-full' : 'mx-auto max-w-5xl rounded-2xl shadow-2xl bg-white/80 backdrop-blur-md border border-slate-200'}`}>
+      <div className={`h-full flex flex-col relative z-10 ${page==='call' ? 'mx-0 w-full' : 'mx-auto max-w-5xl rounded-2xl shadow-2xl bg-white/10 backdrop-blur-md border border-blue-300/30'}`}>
         {toast && <div className="fixed top-4 right-4 z-50 rounded-xl bg-black/90 text-white px-4 py-2 text-base shadow-2xl font-semibold tracking-wide animate-fadein">{toast}</div>}
 
         <Header 
@@ -522,7 +522,7 @@ export default function App({ forcedRole }: AppProps = {}) {
         />
 
         {tab === "call" ? (
-          <div className={`flex-1 flex flex-col lg:flex-row overflow-hidden bg-white pb-24 ${ (showConnectionUI && showMediaUI) ? 'gap-3 p-3' : 'gap-0 p-0' }`}>
+          <div className={`flex-1 flex flex-col lg:flex-row overflow-hidden bg-white/5 backdrop-blur-sm pb-24 ${ (showConnectionUI && showMediaUI) ? 'gap-3 p-3' : 'gap-0 p-0' }`}>
             {/* 左側：接続設定 */}
             <div className={`flex-shrink-0 ${showConnectionUI ? (showMediaUI ? 'w-full lg:w-1/2' : 'w-full lg:w-full') : 'w-0 lg:w-0'} space-y-3 transition-all ${showConnectionUI ? '' : 'opacity-0 pointer-events-none max-h-0 overflow-hidden'}`}>
                       {/* forcedRoleがない場合のみロール切替UIを表示 */}
