@@ -84,27 +84,24 @@ export default function QRScanner() {
 
   const startQRScanning = () => {
     if (videoRef.current) {
-      // シンプルなQRコード検出（Canvas APIを使用）
-      const canvas = canvasRef.current;
       const video = videoRef.current;
       
-      if (canvas && video) {
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          const scanFrame = () => {
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-              canvas.width = video.videoWidth;
-              canvas.height = video.videoHeight;
-              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              
-              // ここでQRコード検出ロジックを実装
-              // 簡単な実装として、定期的にスキャン
-              setTimeout(scanFrame, 100);
-            }
-          };
-          scanFrame();
+      // より確実なQRコード検出のためのタイマー
+      const scanInterval = setInterval(() => {
+        if (!isScanning) {
+          clearInterval(scanInterval);
+          return;
         }
-      }
+        
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          // 実際のQRコード検出はここで実装
+          // 現在は手動入力でテスト
+          console.log('QRコードスキャン中...');
+        }
+      }, 500);
+      
+      // クリーンアップ用に保存
+      setQrScanner(scanInterval);
     }
   };
 
@@ -136,12 +133,16 @@ export default function QRScanner() {
     setSearchResults([]);
 
     try {
+      console.log('検索開始:', searchQuery.trim());
+      
       // QR IDで検索
       const qrQuery = query(
         collection(db, 'userQRCodes'),
         where('qrId', '==', searchQuery.trim())
       );
+      console.log('QR ID検索クエリ実行中...');
       const qrSnapshot = await getDocs(qrQuery);
+      console.log('QR ID検索結果:', qrSnapshot.docs.length, '件');
 
       if (!qrSnapshot.empty) {
         const qrDoc = qrSnapshot.docs[0];
@@ -178,9 +179,19 @@ export default function QRScanner() {
           setSearchError('該当するユーザーが見つかりません');
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('検索エラー:', error);
-      setSearchError('検索中にエラーが発生しました');
+      let errorMessage = '検索中にエラーが発生しました';
+      
+      if (error.code === 'permission-denied') {
+        errorMessage = '検索の権限がありません';
+      } else if (error.code === 'unavailable') {
+        errorMessage = 'ネットワークエラーです。接続を確認してください';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setSearchError(errorMessage);
     } finally {
       setSearchLoading(false);
     }
@@ -269,58 +280,72 @@ export default function QRScanner() {
         />
         
         {/* スキャンエリアのオーバーレイ */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative">
+        <div className="absolute inset-0 flex items-center justify-center p-4">
+          <div className="relative w-full max-w-sm">
             {/* スキャン範囲の四角 */}
-            <div className="w-64 h-64 border-2 border-white/50 bg-transparent relative">
+            <div className="w-full aspect-square max-w-64 border-2 border-white/50 bg-transparent relative mx-auto">
               {/* 四隅のコーナーブラケット */}
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white"></div>
-              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white"></div>
-              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white"></div>
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white"></div>
+              <div className="absolute top-0 left-0 w-6 h-6 sm:w-8 sm:h-8 border-t-2 sm:border-t-4 border-l-2 sm:border-l-4 border-white"></div>
+              <div className="absolute top-0 right-0 w-6 h-6 sm:w-8 sm:h-8 border-t-2 sm:border-t-4 border-r-2 sm:border-r-4 border-white"></div>
+              <div className="absolute bottom-0 left-0 w-6 h-6 sm:w-8 sm:h-8 border-b-2 sm:border-b-4 border-l-2 sm:border-l-4 border-white"></div>
+              <div className="absolute bottom-0 right-0 w-6 h-6 sm:w-8 sm:h-8 border-b-2 sm:border-b-4 border-r-2 sm:border-r-4 border-white"></div>
             </div>
           </div>
         </div>
 
         {/* エラーメッセージ */}
         {error && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-lg">
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-500 text-white px-3 py-2 rounded-lg text-sm sm:text-base max-w-xs mx-4 text-center">
             {error}
           </div>
         )}
       </div>
 
       {/* フッターコントロール */}
-      <div className="bg-gray-800/90 backdrop-blur-sm p-6">
-        <div className="flex justify-center items-center space-x-8 mb-4">
+      <div className="bg-gray-800/90 backdrop-blur-sm p-3 sm:p-6 flex-shrink-0">
+        {/* ボタンエリア */}
+        <div className="flex justify-center items-center space-x-4 sm:space-x-8 mb-3 sm:mb-4">
           {/* マイQRコードボタン */}
           <button 
             onClick={handleMyQRCode}
-            className="flex flex-col items-center space-y-2"
+            className="flex flex-col items-center space-y-1 sm:space-y-2 min-w-0 flex-1 max-w-24 sm:max-w-none"
           >
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-              <svg width="24" height="24" fill="white" viewBox="0 0 24 24">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" className="sm:w-6 sm:h-6" fill="white" viewBox="0 0 24 24">
                 <path d="M3 3h7v7H3V3zm1 1v5h5V4H4zm7-1h7v7h-7V3zm1 1v5h5V4h-5zM3 11h7v7H3v-7zm1 1v5h5v-5H4zm7 0h7v7h-7v-7zm1 1v5h5v-5h-5z"/>
               </svg>
             </div>
-            <span className="text-white text-sm">マイQRコード</span>
+            <span className="text-white text-xs sm:text-sm text-center leading-tight">マイQRコード</span>
           </button>
 
           {/* 検索ボタン */}
           <button 
             onClick={() => setShowSearchModal(true)}
-            className="flex flex-col items-center space-y-2"
+            className="flex flex-col items-center space-y-1 sm:space-y-2 min-w-0 flex-1 max-w-24 sm:max-w-none"
           >
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-              <svg width="24" height="24" fill="white" viewBox="0 0 24 24">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" className="sm:w-6 sm:h-6" fill="white" viewBox="0 0 24 24">
                 <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
               </svg>
             </div>
-            <span className="text-white text-sm">検索</span>
+            <span className="text-white text-xs sm:text-sm text-center leading-tight">検索</span>
           </button>
         </div>
 
-        
+        {/* テスト用QR ID入力 */}
+        <div className="flex justify-center">
+          <button 
+            onClick={() => {
+              const qrId = prompt('テスト用: QR IDを入力してください（例: yTCDQPeS）');
+              if (qrId && qrId.trim()) {
+                handleQRCodeDetected(qrId.trim());
+              }
+            }}
+            className="bg-white/20 text-white px-3 py-2 rounded-lg text-xs sm:text-sm hover:bg-white/30 transition-colors whitespace-nowrap"
+          >
+            テスト用: QR ID入力
+          </button>
+        </div>
       </div>
 
       {/* キャンバス（QRコード検出用） */}

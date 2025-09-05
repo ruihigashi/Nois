@@ -98,7 +98,7 @@ export default function MyQRCode() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 z-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-20 h-20 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 rounded-2xl flex items-center justify-center mb-4 mx-auto">
             <img src="/app-icon.png" alt="Nois" className="w-16 h-16 object-contain" />
@@ -110,7 +110,7 @@ export default function MyQRCode() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col">
+    <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 z-50 flex flex-col">
       {/* ヘッダー */}
       <div className="absolute top-0 left-0 z-10 p-4 text-white">
         <button 
