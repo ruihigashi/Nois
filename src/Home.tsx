@@ -1,5 +1,9 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./contexts/AuthContext";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db, storage } from "./firebase/config";
 
 const icons = {
   user: <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>,
@@ -13,9 +17,27 @@ const icons = {
   settings: <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
 };
 
+interface UserProfile {
+  displayName: string;
+  profileImageUrl?: string;
+  email?: string;
+  phoneNumber?: string;
+}
+
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    displayName: '',
+    phoneNumber: '',
+    email: ''
+  });
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -35,6 +57,133 @@ export default function Home() {
     }
   }, []);
 
+  // ユーザープロフィール情報を取得
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const profileData = userDoc.data();
+            setUserProfile({
+              displayName: profileData.displayName || user.displayName || 'ユーザー',
+              profileImageUrl: profileData.profileImageUrl,
+              email: profileData.email || user.email || '',
+              phoneNumber: profileData.phoneNumber || ''
+            });
+            setFormData({
+              displayName: profileData.displayName || user.displayName || 'ユーザー',
+              phoneNumber: profileData.phoneNumber || '',
+              email: profileData.email || user.email || ''
+            });
+          } else {
+            // Firestoreにデータがない場合は、Firebase Authの情報を使用
+            setUserProfile({
+              displayName: user.displayName || 'ユーザー',
+              profileImageUrl: user.photoURL || undefined,
+              email: user.email || '',
+              phoneNumber: ''
+            });
+            setFormData({
+              displayName: user.displayName || 'ユーザー',
+              phoneNumber: '',
+              email: user.email || ''
+            });
+          }
+        } catch (error) {
+          console.error('プロフィール取得エラー:', error);
+          // エラーの場合はFirebase Authの情報を使用
+          setUserProfile({
+            displayName: user.displayName || 'ユーザー',
+            profileImageUrl: user.photoURL || undefined,
+            email: user.email || '',
+            phoneNumber: ''
+          });
+          setFormData({
+            displayName: user.displayName || 'ユーザー',
+            phoneNumber: '',
+            email: user.email || ''
+          });
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
+
+  const handleUserIconClick = () => {
+    setShowProfileModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowProfileModal(false);
+    setEditing(false);
+  };
+
+  const handleEdit = () => {
+    setEditing(true);
+  };
+
+  const handleSave = async () => {
+    if (user) {
+      try {
+        let profileImageUrl = userProfile?.profileImageUrl;
+        
+        // 画像が選択されている場合はアップロード
+        if (profileImageFile) {
+          const imageRef = ref(storage, `profile-images/${user.uid}`);
+          await uploadBytes(imageRef, profileImageFile);
+          profileImageUrl = await getDownloadURL(imageRef);
+        }
+        
+        await updateDoc(doc(db, 'users', user.uid), {
+          displayName: formData.displayName,
+          phoneNumber: formData.phoneNumber,
+          email: formData.email,
+          profileImageUrl: profileImageUrl,
+          updatedAt: new Date()
+        });
+        
+        setUserProfile(prev => prev ? {
+          ...prev,
+          displayName: formData.displayName,
+          phoneNumber: formData.phoneNumber,
+          email: formData.email,
+          profileImageUrl: profileImageUrl
+        } : null);
+        
+        setProfileImageFile(null);
+        setProfileImagePreview(null);
+        setEditing(false);
+      } catch (error) {
+        console.error('プロフィール更新エラー:', error);
+      }
+    }
+  };
+
+  const handleCancel = () => {
+    setFormData({
+      displayName: userProfile?.displayName || '',
+      phoneNumber: userProfile?.phoneNumber || '',
+      email: userProfile?.email || ''
+    });
+    setProfileImageFile(null);
+    setProfileImagePreview(null);
+    setEditing(false);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProfileImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProfileImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 home-font relative">
       {/* 背景画像 */}
@@ -51,8 +200,15 @@ export default function Home() {
       />
       {/* ヘッダー */}
       <header className="flex items-center justify-between px-4 pt-4 pb-2 mb-6 border-b border-slate-200 overflow-visible relative z-10">
-            <div className="text-3xl font-extrabold pr-1 bg-gradient-to-r from-cyan-300 to-blue-200 bg-clip-text text-transparent drop-shadow-sm select-none" style={{letterSpacing:'-1px'}}>Nois</div>
-        <div className="text-cyan-300">{icons.user}</div>
+        <div className="flex items-center">
+          <img src="/app-icon.png" alt="Nois" className="w-16 h-8 object-contain" />
+        </div>
+        <button 
+          onClick={handleUserIconClick}
+          className="text-cyan-300 hover:text-cyan-200 transition-colors cursor-pointer"
+        >
+          {icons.user}
+        </button>
       </header>
 
       {/* メイン */}
@@ -84,7 +240,7 @@ export default function Home() {
             </button>
             <button onClick={() => navigate('/reception')} className="flex flex-row items-center justify-center border-2 border-blue-300/50 rounded-xl py-3 bg-white/10 backdrop-blur-sm shadow-md active:scale-95 transition-all gap-2">
               <img src="/reception-icon.png" alt="reception" className="w-10 h-10 object-contain" />
-              <span className="text-xl font-extrabold bg-gradient-to-r from-purple-200 to-pink-300 bg-clip-text text-transparent">reception</span>
+              <span className="text-xl font-extrabold bg-gradient-to-r from-purple-200 to-pink-300 bg-clip-text text-transparent">Reception</span>
             </button>
           </div>
         </div>
@@ -92,14 +248,151 @@ export default function Home() {
 
       {/* ナビゲーションバー */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/10 backdrop-blur-md border-t border-blue-300/30 flex justify-around items-center h-16 z-20">
-        <button className="flex flex-col items-center"><img src="/home.png" alt="home" className="w-7 h-7 object-contain" /></button>
+        <button 
+          onClick={() => navigate('/home')}
+          className="flex flex-col items-center hover:opacity-80 transition-opacity"
+        >
+          <img src="/home.png" alt="home" className="w-7 h-7 object-contain" />
+        </button>
         <button className="flex flex-col items-center"><img src="/discover-icon.png" alt="discover" className="w-7 h-7 object-contain" /></button>
-        <div className="flex flex-col items-center justify-center">
+        <button 
+          onClick={() => navigate('/caller')}
+          className="flex flex-col items-center justify-center hover:opacity-80 transition-opacity"
+        >
           <img src="/logo.png" alt="logo" className="w-10 h-10 object-contain" style={{marginTop: '-2px'}} />
-        </div>
+        </button>
         <button className="flex flex-col items-center"><img src="/icon_beru.png" alt="bell" className="w-7 h-7 object-contain" /></button>
-        <button className="flex flex-col items-center"><img src="/icon-settings.png" alt="settings" className="w-7 h-7 object-contain" /></button>
+        <button 
+          onClick={() => navigate('/settings')}
+          className="flex flex-col items-center hover:opacity-80 transition-opacity"
+        >
+          <img src="/icon-settings.png" alt="settings" className="w-7 h-7 object-contain" />
+        </button>
       </nav>
+
+      {/* プロフィールモーダル */}
+      {showProfileModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={handleCloseModal}>
+          <div 
+            className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* プロフィール画像 */}
+            <div className="flex flex-col items-center mb-6">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+                id="profile-image-input"
+              />
+              <div 
+                className={`w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mb-4 ${editing ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                onClick={() => editing && document.getElementById('profile-image-input')?.click()}
+              >
+                {editing && profileImagePreview ? (
+                  <img 
+                    src={profileImagePreview} 
+                    alt="プロフィールプレビュー" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : userProfile?.profileImageUrl ? (
+                  <img 
+                    src={userProfile.profileImageUrl} 
+                    alt="プロフィール" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-gray-400 text-3xl">👤</span>
+                )}
+              </div>
+              
+              {/* ユーザー名 */}
+              <h2 className="text-xl font-bold text-gray-800 mb-2">
+                {userProfile?.displayName || 'ユーザー'}
+              </h2>
+              
+              {/* メールアドレス */}
+              {userProfile?.email && (
+                <p className="text-gray-600 text-sm mb-1">
+                  {userProfile.email}
+                </p>
+              )}
+              
+            </div>
+
+            {/* プロフィール情報編集 */}
+            {editing ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    表示名
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.displayName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, displayName: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    メールアドレス
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="メールアドレスを入力"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    電話番号
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.phoneNumber}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="電話番号を入力"
+                  />
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleCancel}
+                    className="flex-1 bg-gray-500 text-white font-semibold py-3 px-4 rounded-xl hover:bg-gray-600 transition-all duration-200"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className="flex-1 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 text-white font-semibold py-3 px-4 rounded-xl hover:from-slate-800 hover:via-blue-800 hover:to-purple-800 transition-all duration-200"
+                  >
+                    保存
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <button 
+                  onClick={handleEdit}
+                  className="w-full bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 text-white font-semibold py-3 px-4 rounded-xl hover:from-slate-800 hover:via-blue-800 hover:to-purple-800 transition-all duration-200"
+                >
+                  プロフィール編集
+                </button>
+                <button 
+                  onClick={handleCloseModal}
+                  className="w-full bg-gray-200 text-gray-600 font-semibold py-3 px-4 rounded-xl hover:bg-gray-300 transition-all duration-200"
+                >
+                  閉じる
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

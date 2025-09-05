@@ -132,7 +132,7 @@ export default function App({ forcedRole }: AppProps = {}) {
 
   // 通話時間の更新
   useEffect(() => {
-    let interval: number;
+    let interval: NodeJS.Timeout;
     if (isInCall) {
       interval = setInterval(() => {
         setCallDuration(prev => prev + 1);
@@ -273,7 +273,7 @@ export default function App({ forcedRole }: AppProps = {}) {
     showToast("通話が終了されました");
     
     // ホーム画面に戻る
-    navigate('/');
+    navigate('/home');
   }
 
   function createNewConnection() {
@@ -517,7 +517,7 @@ export default function App({ forcedRole }: AppProps = {}) {
         <Header 
           headerTitle={headerTitle}
           page={page}
-          onBack={() => navigate('/')}
+          onBack={() => navigate('/home')}
           onSettingsClick={() => setTab("settings")}
         />
 

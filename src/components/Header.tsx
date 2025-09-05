@@ -5,14 +5,15 @@ interface HeaderProps {
   page: string;
   onBack?: () => void;
   onSettingsClick?: () => void;
+  onPlusClick?: () => void;
 }
 
-export default function Header({ headerTitle, page, onBack, onSettingsClick }: HeaderProps) {
+export default function Header({ headerTitle, page, onBack, onSettingsClick, onPlusClick }: HeaderProps) {
   return (
-    <header className={`flex items-center justify-between border-b border-blue-300/30 bg-white/10 backdrop-blur-md w-full ${page==='call' ? '' : 'rounded-t-2xl'}`}>
+    <header className="flex items-center justify-between px-2 mb-6 pb-2 border-b border-slate-200 overflow-visible relative z-10 -mx-2">
       <div className="flex items-center">
         {onBack && (
-          <button onClick={onBack} className="flex items-center justify-center w-10 h-12 hover:opacity-80 transition-opacity cursor-pointer">
+          <button onClick={onBack} className="flex items-center justify-center w-8 h-6 mr-2 hover:opacity-80 transition-opacity cursor-pointer">
             <img src="/back-icon.png" alt="戻る" className="w-full h-full object-contain" />
           </button>
         )}
@@ -22,6 +23,11 @@ export default function Header({ headerTitle, page, onBack, onSettingsClick }: H
         {page === 'call' && onSettingsClick && (
           <button onClick={() => onSettingsClick()} className="flex items-center justify-center w-6 h-6 hover:opacity-80 transition-opacity cursor-pointer">
             <img src="/icon-settings.png" alt="設定" className="w-full h-full object-contain" />
+          </button>
+        )}
+        {page === 'home' && onPlusClick && (
+          <button onClick={() => onPlusClick()} className="flex items-center justify-center w-6 h-6 hover:opacity-80 transition-opacity cursor-pointer">
+            <img src="/plus-icon.png" alt="友達追加" className="w-full h-full object-contain" />
           </button>
         )}
       </div>
