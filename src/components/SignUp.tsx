@@ -69,6 +69,20 @@ export default function SignUp() {
         profileImage: profileImage || undefined,
         qrId: qrId
       });
+
+      // emailが入力されている場合は、Firebase Authのemailを更新
+      if (formData.email && formData.email.trim()) {
+        try {
+          await updateProfile(currentUser, {
+            displayName: formData.displayName
+          });
+          // emailは別途処理が必要（updateProfileではemailは更新できない）
+          console.log('Email will be handled separately:', formData.email);
+        } catch (emailError) {
+          console.log('Profile update failed:', emailError);
+          // email更新に失敗しても続行
+        }
+      }
       
       // QRコード情報を保存
       await saveUserQRCode(currentUser.uid, qrId, qrCodeDataURL);

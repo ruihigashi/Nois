@@ -1,7 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 import { auth } from '../firebase/config';
+
+// グローバル変数の型定義
+declare global {
+  interface Window {
+    recaptchaVerifier?: RecaptchaVerifier;
+    confirmationResult?: ConfirmationResult;
+  }
+}
 
 export default function PhoneAuth() {
   const navigate = useNavigate();
@@ -19,6 +27,57 @@ export default function PhoneAuth() {
     // 簡単なトースト表示（後で改善可能）
     console.log('Toast:', message);
   };
+
+  // reCAPTCHAの初期化
+  useEffect(() => {
+    const initializeRecaptcha = async () => {
+      try {
+        // 既存のreCAPTCHAをクリア
+        if (window.recaptchaVerifier) {
+          window.recaptchaVerifier.clear();
+        }
+
+        // reCAPTCHAを再初期化
+        window.recaptchaVerifier = new RecaptchaVerifier(
+          auth,
+          'recaptcha-container',
+          {
+            size: 'invisible',
+            callback: (response: string) => {
+              console.log('reCAPTCHA solved:', response);
+            },
+            'expired-callback': () => {
+              console.log('reCAPTCHA expired');
+              setError('reCAPTCHAが期限切れです。再試行してください。');
+            },
+            'error-callback': (error: any) => {
+              console.log('reCAPTCHA error:', error);
+            }
+          }
+        );
+
+        // reCAPTCHAをレンダリング
+        await window.recaptchaVerifier.render();
+        console.log('reCAPTCHA initialized successfully');
+      } catch (error) {
+        console.error('reCAPTCHA初期化エラー:', error);
+      }
+    };
+
+    // 少し遅延させて初期化
+    const timer = setTimeout(initializeRecaptcha, 1000);
+    
+    return () => {
+      clearTimeout(timer);
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (error) {
+          console.log('reCAPTCHA cleanup error:', error);
+        }
+      }
+    };
+  }, []);
 
   // 電話番号の部分を結合
   const getFullPhoneNumber = () => {
@@ -94,41 +153,23 @@ export default function PhoneAuth() {
     setLoading(true);
     setError('');
 
-    // 開発用: テスト電話番号の場合はSMS送信をスキップ
-    if (formattedPhoneNumber === '08091433468' || formattedPhoneNumber === '+818091433468') {
-      console.log('開発用: テスト電話番号を検出しました');
-      sessionStorage.setItem('phoneNumber', formattedPhoneNumber);
-      sessionStorage.setItem('testMode', 'true');
-      setIsCodeSent(true);
-      showToast('テストモード: 認証コードは 123456 です');
-      setLoading(false);
-      return;
-    }
 
     try {
-      // reCAPTCHA設定を改善
-      const recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: () => {
-          console.log('reCAPTCHA solved');
-        },
-        'expired-callback': () => {
-          console.log('reCAPTCHA expired');
-          setError('reCAPTCHAが期限切れです。再試行してください。');
-        },
-        'error-callback': () => {
-          console.log('reCAPTCHA error');
-          setError('reCAPTCHA認証に失敗しました。');
-        }
-      });
+      if (!window.recaptchaVerifier) {
+        throw new Error('reCAPTCHAが初期化されていません。ページを再読み込みしてください。');
+      }
 
       console.log('Sending SMS to:', formattedPhoneNumber);
+      console.log('reCAPTCHA verifier:', window.recaptchaVerifier);
+      console.log('Firebase auth:', auth);
+      console.log('Firebase app:', auth.app);
+      console.log('Firebase config:', auth.app.options);
       
       // 電話番号にSMS送信
-      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, recaptchaVerifier);
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, window.recaptchaVerifier);
       
-      // 確認結果と電話番号をセッションストレージに保存
-      sessionStorage.setItem('confirmationResult', JSON.stringify(confirmationResult));
+      // 確認結果をグローバル変数に保存（JSON.stringifyは使用しない）
+      window.confirmationResult = confirmationResult;
       sessionStorage.setItem('phoneNumber', formattedPhoneNumber);
       setIsCodeSent(true);
       showToast('認証コードを送信しました');
@@ -141,13 +182,17 @@ export default function PhoneAuth() {
       } else if (err.code === 'auth/too-many-requests') {
         errorMessage = 'リクエストが多すぎます。しばらく待ってから再試行してください';
       } else if (err.code === 'auth/captcha-check-failed') {
-        errorMessage = 'reCAPTCHA認証に失敗しました';
+        errorMessage = 'reCAPTCHA認証に失敗しました。ページを再読み込みしてください';
       } else if (err.code === 'auth/invalid-app-credential') {
         errorMessage = 'Firebase設定に問題があります。管理者にお問い合わせください';
       } else if (err.code === 'auth/missing-phone-number') {
         errorMessage = '電話番号が入力されていません';
       } else if (err.code === 'auth/quota-exceeded') {
         errorMessage = 'SMS送信の上限に達しました。しばらく待ってから再試行してください';
+      } else if (err.code === 'auth/internal-error') {
+        errorMessage = 'Firebase内部エラーです。ページを再読み込みして再試行してください';
+      } else if (err.code === 'auth/network-request-failed') {
+        errorMessage = 'ネットワークエラーです。インターネット接続を確認してください';
       } else if (err.message) {
         errorMessage = err.message;
       }
@@ -168,21 +213,12 @@ export default function PhoneAuth() {
     setError('');
 
     try {
-      // 開発用: テストモードの場合は認証コードをスキップ
-      if (sessionStorage.getItem('testMode') === 'true') {
-                    if (verificationCode === '123456') {
-              console.log('開発用: テスト認証コードが正しいです');
-              navigate('/email-password');
-              return;
-        } else {
-          setError('テスト認証コードは 123456 です');
-          setLoading(false);
-          return;
-        }
-      }
 
-      const confirmationResult = JSON.parse(sessionStorage.getItem('confirmationResult') || '');
-      await confirmationResult.confirm(verificationCode);
+      if (!window.confirmationResult) {
+        throw new Error('認証結果が見つかりません。SMSを再送信してください。');
+      }
+      
+      await window.confirmationResult.confirm(verificationCode);
       
                 // 認証成功後、メール・パスワード登録画面へ
           navigate('/email-password');

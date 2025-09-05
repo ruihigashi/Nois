@@ -44,16 +44,20 @@ export const createUserProfile = async (
     }
 
     // ユーザープロフィールデータ
-    const userProfile: UserProfile = {
+    const userProfile: any = {
       uid: user.uid,
       displayName: additionalData.displayName,
-      email: user.email || undefined,
       phoneNumber: additionalData.phoneNumber || user.phoneNumber || '',
       profileImageUrl,
       qrId: additionalData.qrId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
+
+    // emailが存在し、空でない場合のみ追加
+    if (user.email && user.email.trim() !== '') {
+      userProfile.email = user.email;
+    }
 
     // Firestoreに保存
     const userRef = doc(db, 'users', user.uid);
