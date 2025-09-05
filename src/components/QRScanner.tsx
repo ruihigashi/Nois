@@ -134,6 +134,8 @@ export default function QRScanner() {
 
     try {
       console.log('検索開始:', searchQuery.trim());
+      console.log('現在のユーザー:', user?.uid);
+      console.log('認証状態:', user ? '認証済み' : '未認証');
       
       // QR IDで検索
       const qrQuery = query(
@@ -184,9 +186,11 @@ export default function QRScanner() {
       let errorMessage = '検索中にエラーが発生しました';
       
       if (error.code === 'permission-denied') {
-        errorMessage = '検索の権限がありません';
+        errorMessage = 'Firebaseの権限設定を確認してください。管理者にお問い合わせください。';
       } else if (error.code === 'unavailable') {
         errorMessage = 'ネットワークエラーです。接続を確認してください';
+      } else if (error.code === 'unauthenticated') {
+        errorMessage = '認証が必要です。ログインし直してください';
       } else if (error.message) {
         errorMessage = error.message;
       }

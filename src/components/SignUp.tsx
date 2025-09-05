@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { updateProfile } from 'firebase/auth';
+import { updateProfile, updateEmail } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import { createUserProfile } from '../services/userService';
 import { generateUserQRId, generateQRCode, saveUserQRCode } from '../services/qrService';
@@ -70,17 +70,21 @@ export default function SignUp() {
         qrId: qrId
       });
 
-      // emailが入力されている場合は、Firebase Authのemailを更新
+      // プロフィール更新
+      await updateProfile(currentUser, {
+        displayName: formData.displayName
+      });
+
+      // emailが入力されている場合の処理
       if (formData.email && formData.email.trim()) {
         try {
-          await updateProfile(currentUser, {
-            displayName: formData.displayName
-          });
-          // emailは別途処理が必要（updateProfileではemailは更新できない）
-          console.log('Email will be handled separately:', formData.email);
-        } catch (emailError) {
-          console.log('Profile update failed:', emailError);
-          // email更新に失敗しても続行
+          // 電話番号認証で作成されたユーザーの場合、メールアドレスを設定するには
+          // メール/パスワード認証でアカウントを作成し直す必要があります
+          console.log('Email will be stored in Firestore only:', formData.email);
+          console.log('Note: To enable email/password login, user needs to create a new account with email/password authentication');
+        } catch (emailError: any) {
+          console.error('Email handling failed:', emailError);
+          // エラーが発生しても続行（Firestoreには保存される）
         }
       }
       
