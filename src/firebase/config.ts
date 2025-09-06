@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { getDatabase } from 'firebase/database';
 
 // Firebase設定
 const firebaseConfig = {
@@ -25,5 +26,8 @@ export const db = getFirestore(app);
 
 // Storage初期化
 export const storage = getStorage(app);
+
+// Realtime Database初期化
+export const database = getDatabase(app);
 
 export default app;

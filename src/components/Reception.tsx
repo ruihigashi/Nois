@@ -68,17 +68,6 @@ export default function Reception({
 
       {micEnabled && (
         <>
-          {isInCall && (
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              <button onClick={endCall} className="px-3 py-2 text-white text-sm font-medium border rounded bg-red-700 border-red-700">
-                通話終了
-              </button>
-              <div className="text-sm text-green-600 bg-green-50 px-2 py-1 border border-green-300 font-medium">
-                🎤 通話中
-              </div>
-            </div>
-          )}
-
           <div className="space-y-3">
             {/* Answerer側のRemote SDP表示（段階的に表示） */}
             {showAnswererRemoteSDP && (

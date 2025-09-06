@@ -42,7 +42,7 @@ export default function Settings() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-white/80">開発者</span>
-                <span className="text-white">Nois Team</span>
+                <span className="text-white">AIEL</span>
               </div>
             </div>
           </div>

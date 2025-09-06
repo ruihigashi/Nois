@@ -7,7 +7,10 @@ import Reception from "./components/Reception";
 import MediaUI from "./components/MediaUI";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import IncomingCallModal from "./components/IncomingCallModal";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./contexts/AuthContext";
+import { useAutoCall } from "./hooks/useAutoCall";
 
 type Role = "caller" | "answerer";
 
@@ -20,6 +23,7 @@ type Tab = "call" | "settings";
 
 export default function App({ forcedRole }: AppProps = {}) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [page, setPage] = useState<'home'|'call'>('home');
   const [tab, setTab] = useState<Tab>("call");
   const [pc, setPc] = useState<RTCPeerConnection | null>(null);
@@ -70,6 +74,26 @@ export default function App({ forcedRole }: AppProps = {}) {
   const [callDuration, setCallDuration] = useState<number>(0);
   // FriendList画面の表示状態
   const [showFriendList, setShowFriendList] = useState<boolean>(false);
+
+  // 自動通話機能
+  const { incomingCall, answerCall, rejectCall } = useAutoCall({
+    userId: user?.uid || '',
+    userName: user?.displayName || 'ユーザー',
+    pc,
+    localStreamRef,
+    onCallConnected: () => {
+      setIsInCall(true);
+      setShowMediaUI(true);
+      setShowConnectionUI(false);
+      showToast("通話が接続されました");
+    },
+    onCallEnded: () => {
+      setIsInCall(false);
+      setShowMediaUI(false);
+      setShowConnectionUI(true);
+      showToast("通話が終了されました");
+    }
+  });
 
   // Translation / TTS
   const [fromLang, setFromLang] = useState<Lang>("auto");
@@ -612,52 +636,126 @@ export default function App({ forcedRole }: AppProps = {}) {
             </div>
           </div>
         ) : (
-          <div className="flex-1 overflow-auto bg-gray-100 p-3">
-            <div className="bg-white border border-gray-300 p-4">
-              <div className="space-y-4">
-                <h2 className="text-base font-semibold text-gray-800 pb-2 border-b border-gray-300">設定</h2>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">翻訳（送信前処理）</label>
-                    <div className="flex items-center gap-2">
-                      <select className="border border-gray-300 px-2 py-1 text-sm bg-white" value={fromLang} onChange={(e)=>setFromLang(e.target.value as Lang)}>
-                        <option value="auto">Auto</option><option value="ja">JA</option><option value="en">EN</option>
-                      </select>
-                      <span className="text-gray-500">→</span>
-                      <select className="border border-gray-300 px-2 py-1 text-sm bg-white" value={toLang} onChange={(e)=>setToLang(e.target.value as Lang)}>
-                        <option value="auto">Auto</option><option value="ja">JA</option><option value="en">EN</option>
-                      </select>
-                      <select className="border border-gray-300 px-2 py-1 text-sm bg-white" value={translator} onChange={(e)=>setTranslator(e.target.value as any)}>
-                        <option value="mini-dict">MiniDict</option><option value="mock-tag">Mock</option><option value="none">None</option>
-                      </select>
-                    </div>
-                  </div>
+          <div className="flex-1 bg-white/5 backdrop-blur-sm relative z-10 p-4 rounded-xl">
+            <div className="space-y-6">
+              {/* ヘッダー */}
+              <div className="text-center mb-6">
+                <h2 className="text-xl font-bold bg-gradient-to-r from-cyan-300 to-blue-200 bg-clip-text text-transparent">
+                  通話設定
+                </h2>
+              </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">受信テキストの読み上げ（TTS）</label>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <label className="inline-flex items-center gap-2 text-sm">
-                        <input type="checkbox" checked={speakOnReceive} onChange={(e)=>setSpeakOnReceive(e.target.checked)} />
-                        <span>有効にする</span>
-                      </label>
-                      <select className="border border-gray-300 px-2 py-1 text-sm bg-white" value={ttsLang} onChange={(e)=>setTtsLang(e.target.value as any)}>
-                        <option value="auto">Lang: Auto</option>
-                        <option value="ja">Lang: JA</option>
-                        <option value="en">Lang: EN</option>
-                      </select>
-                      <select className="border border-gray-300 px-2 py-1 text-sm bg-white" value={ttsVoiceName} onChange={(e)=>setTtsVoiceName(e.target.value)}>
-                        {voiceOptions.map(v => <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>)}
-                      </select>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={()=>{ const sample = ttsLang==="ja"?"テスト。こんにちは。":"Test: Hello there."; speak(sample); }} className="px-3 py-2 bg-gray-600 text-white text-sm font-medium border rounded border-gray-600">TTS Test</button>
+              {/* 翻訳設定セクション */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+                  </svg>
+                  翻訳設定
+                </h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs text-white/60 mb-1">送信言語</label>
+                        <select 
+                          className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-transparent transition-all backdrop-blur-sm" 
+                          value={fromLang} 
+                          onChange={(e)=>setFromLang(e.target.value as Lang)}
+                        >
+                          <option value="auto" className="bg-gray-800 text-white">自動検出</option>
+                          <option value="ja" className="bg-gray-800 text-white">日本語</option>
+                          <option value="en" className="bg-gray-800 text-white">英語</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs text-white/60 mb-1">翻訳先言語</label>
+                        <select 
+                          className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-transparent transition-all backdrop-blur-sm" 
+                          value={toLang} 
+                          onChange={(e)=>setToLang(e.target.value as Lang)}
+                        >
+                          <option value="auto" className="bg-gray-800 text-white">自動選択</option>
+                          <option value="ja" className="bg-gray-800 text-white">日本語</option>
+                          <option value="en" className="bg-gray-800 text-white">英語</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="text-sm text-gray-600 bg-gray-50 px-3 py-2 border border-gray-300">
-                  注意: ブラウザの自動再生制限により、初回はボタン操作後でないと音声が再生されない場合があります。
+              {/* 音声設定セクション */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                  </svg>
+                  音声設定
+                </h3>
+                
+                <div className="space-y-4">
+
+                  {speakOnReceive && (
+                    <div className="space-y-3 rounded-lg">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-white/80 mb-2">読み上げ言語</label>
+                          <select 
+                            className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-transparent transition-all backdrop-blur-sm" 
+                            value={ttsLang} 
+                            onChange={(e)=>setTtsLang(e.target.value as any)}
+                          >
+                            <option value="auto" className="bg-gray-800 text-white">自動選択</option>
+                            <option value="ja" className="bg-gray-800 text-white">日本語</option>
+                            <option value="en" className="bg-gray-800 text-white">英語</option>
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-white/80 mb-2">音声エンジン</label>
+                          <select 
+                            className="w-full px-3 py-2 bg-white/20 border border-white/30 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-transparent transition-all backdrop-blur-sm" 
+                            value={ttsVoiceName} 
+                            onChange={(e)=>setTtsVoiceName(e.target.value)}
+                          >
+                            {voiceOptions.map(v => (
+                              <option key={v.name} value={v.name} className="bg-gray-800 text-white">
+                                {v.name} ({v.lang})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-center">
+                        <button 
+                          onClick={()=>{ 
+                            const sample = ttsLang==="ja"?"テスト。こんにちは。":"Test: Hello there."; 
+                            speak(sample); 
+                          }} 
+                          className="px-6 py-2 mt-4 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 text-white text-sm font-medium rounded-lg hover:from-slate-800 hover:via-blue-800 hover:to-purple-800 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
+                        >
+                          <img src="/offspeaker.png" alt="speaker" className="w-6 h-6 object-contain" />
+                          音声テスト
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              </div>
+
+
+              {/* 戻るボタン */}
+              <div className="flex justify-center pt-4">
+                <button 
+                  onClick={() => setTab("call")}
+                  className="px-8 py-3 bg-gradient-to-r from-slate-600 to-gray-700 text-white font-medium rounded-xl hover:from-slate-700 hover:to-gray-800 transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  設定を閉じる
+                </button>
               </div>
             </div>
           </div>
@@ -666,6 +764,15 @@ export default function App({ forcedRole }: AppProps = {}) {
       
       {/* ナビゲーションバー（フッター） */}
       <Footer />
+
+      {/* 着信通知モーダル */}
+      {incomingCall && (
+        <IncomingCallModal
+          incomingCall={incomingCall}
+          onAccept={answerCall}
+          onReject={rejectCall}
+        />
+      )}
     </div>
   );
 }

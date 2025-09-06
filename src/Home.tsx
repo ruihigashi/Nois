@@ -230,12 +230,12 @@ export default function Home() {
         </div>
         <div className="w-full flex flex-col gap-4 items-center">
           <button onClick={() => navigate('/friends')} className="w-full max-w-sm flex flex-row items-center justify-center border-2 border-blue-300/50 rounded-xl py-3 bg-white/10 backdrop-blur-sm shadow-md active:scale-95 transition-all gap-2">
-            <img src="/friend-icon.png" alt="friend" className="w-7 h-7 object-contain" />
-            <span className="text-2xl font-extrabold bg-gradient-to-r from-cyan-300 to-blue-200 bg-clip-text text-transparent tracking-tight">Friend List</span>
+            <img src="/discover-icon.png" alt="friend" className="w-8 h-8 object-contain" />
+            <span className="text-2xl font-extrabold bg-gradient-to-r from-cyan-300 to-blue-200 bg-clip-text text-transparent tracking-tight">Chat</span>
           </button>
           <div className="w-full max-w-sm grid grid-cols-2 gap-4">
             <button onClick={() => navigate('/caller')} className="flex flex-row items-center justify-center border-2 border-blue-300/50 rounded-xl py-3 bg-white/10 backdrop-blur-sm shadow-md active:scale-95 transition-all gap-2">
-              <img src="/call-icon.png" alt="call" className="w-7 h-7 object-contain" />
+              <img src="/call-icon.png" alt="call" className="w-10 h-9 object-contain" />
               <span className="text-xl font-extrabold bg-gradient-to-r from-blue-200 to-cyan-300 bg-clip-text text-transparent">Call</span>
             </button>
             <button onClick={() => navigate('/reception')} className="flex flex-row items-center justify-center border-2 border-blue-300/50 rounded-xl py-3 bg-white/10 backdrop-blur-sm shadow-md active:scale-95 transition-all gap-2">

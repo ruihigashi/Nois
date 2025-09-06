@@ -3,12 +3,25 @@ import { useNavigate } from "react-router-dom";
 import Header from "./Header";
 import { useAuth } from "../contexts/AuthContext";
 import { getFriendsList } from "../services/qrService";
+import { useAutoCall } from "../hooks/useAutoCall";
 
 export default function FriendList() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pc] = useState<RTCPeerConnection | null>(null);
+  const localStreamRef = React.useRef<MediaStream | null>(null);
+
+  // 自動通話機能
+  const { startCall } = useAutoCall({
+    userId: user?.uid || '',
+    userName: user?.displayName || 'ユーザー',
+    pc,
+    localStreamRef,
+    onCallConnected: () => {},
+    onCallEnded: () => {}
+  });
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -30,6 +43,14 @@ export default function FriendList() {
 
   const handlePlusClick = () => {
     navigate('/qr-scanner');
+  };
+
+  const handleCallFriend = async (friend: any) => {
+    try {
+      await startCall(friend.id, friend.displayName);
+    } catch (error) {
+      console.error('通話開始エラー:', error);
+    }
   };
 
   return (
@@ -75,7 +96,10 @@ export default function FriendList() {
                     <p className="text-white/60 text-sm">{friend.email}</p>
                   )}
                 </div>
-                <button className="text-cyan-300 hover:text-cyan-200 transition-colors">
+                <button 
+                  onClick={() => handleCallFriend(friend)}
+                  className="bg-green-500/80 hover:bg-green-500 text-white p-3 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
                   <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M22 16.92V21a2 2 0 0 1-2.18 2A19.72 19.72 0 0 1 3 5.18 2 2 0 0 1 5 3h4.09a2 2 0 0 1 2 1.72c.13 1.13.37 2.23.72 3.28a2 2 0 0 1-.45 2.11l-1.27 1.27a16 16 0 0 0 6.29 6.29l1.27-1.27a2 2 0 0 1 2.11-.45c1.05.35 2.15.59 3.28.72A2 2 0 0 1 22 16.92z"/>
                   </svg>
