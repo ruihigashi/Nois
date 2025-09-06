@@ -1,4 +1,4 @@
-import { collection, addDoc, query, where, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, query, where, orderBy, onSnapshot, Timestamp, QuerySnapshot, DocumentData } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
 export interface Message {
@@ -52,11 +52,11 @@ class FirestoreMessageService {
         orderBy('timestamp', 'asc')
       );
 
-      const unsubscribe = onSnapshot(q, (snapshot) => {
+      const unsubscribe = onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
         try {
           const messages: Message[] = [];
           snapshot.forEach((doc) => {
-            const data = doc.data();
+            const data = doc.data() as any;
             // 送信者と受信者が正しい組み合わせかチェック
             if ((data.senderId === userId1 && data.receiverId === userId2) ||
                 (data.senderId === userId2 && data.receiverId === userId1)) {
@@ -65,7 +65,7 @@ class FirestoreMessageService {
                 senderId: data.senderId,
                 receiverId: data.receiverId,
                 content: data.content,
-                timestamp: data.timestamp.toMillis(),
+                timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp,
                 senderName: data.senderName,
                 isRead: data.isRead
               });
@@ -104,7 +104,7 @@ class FirestoreMessageService {
           );
 
           // 簡単な方法として、最新の1件を取得
-          const snapshot = await new Promise((resolve, reject) => {
+          const snapshot = await new Promise<QuerySnapshot<DocumentData>>((resolve, reject) => {
             const unsubscribe = onSnapshot(q, (snapshot) => {
               unsubscribe();
               resolve(snapshot);
@@ -113,7 +113,7 @@ class FirestoreMessageService {
 
           let lastMessage: Message | null = null;
           snapshot.forEach((doc) => {
-            const data = doc.data();
+            const data = doc.data() as any;
             if ((data.senderId === userId && data.receiverId === friendId) ||
                 (data.senderId === friendId && data.receiverId === userId)) {
               lastMessage = {
@@ -121,7 +121,7 @@ class FirestoreMessageService {
                 senderId: data.senderId,
                 receiverId: data.receiverId,
                 content: data.content,
-                timestamp: data.timestamp.toMillis(),
+                timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp,
                 senderName: data.senderName,
                 isRead: data.isRead
               };
