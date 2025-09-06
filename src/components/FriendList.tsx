@@ -4,12 +4,14 @@ import Header from "./Header";
 import { useAuth } from "../contexts/AuthContext";
 import { getFriendsList } from "../services/qrService";
 import { useAutoCall } from "../hooks/useAutoCall";
+import { messageService, Message } from "../services/MessageService";
 
 export default function FriendList() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastMessages, setLastMessages] = useState<Record<string, Message | null>>({});
   const [pc] = useState<RTCPeerConnection | null>(null);
   const localStreamRef = React.useRef<MediaStream | null>(null);
 
@@ -26,15 +28,44 @@ export default function FriendList() {
   useEffect(() => {
     const fetchFriends = async () => {
       if (user) {
+        console.log('フレンドリスト取得開始, userId:', user.uid);
         
         try {
+          // まずフレンドリストのみを取得
           const friendsList = await getFriendsList(user.uid);
+          console.log('フレンドリスト取得成功:', friendsList);
           setFriends(friendsList);
+          
+          // メッセージ取得は後で非同期で実行（読み込みをブロックしない）
+          if (friendsList.length > 0) {
+            console.log('メッセージ取得開始（非同期）');
+            const friendIds = friendsList.map(friend => friend.id);
+            
+            // メッセージ取得を非同期で実行
+            messageService.getLastMessagesForUser(user.uid, friendIds)
+              .then(lastMessages => {
+                console.log('メッセージ取得成功:', lastMessages);
+                setLastMessages(lastMessages);
+              })
+              .catch(error => {
+                console.error('メッセージ取得エラー:', error);
+                setLastMessages({});
+              });
+          } else {
+            console.log('フレンドが0人');
+          }
         } catch (error) {
           console.error('友達リスト取得エラー:', error);
+          // エラーが発生しても読み込みを終了
+          setFriends([]);
+          setLastMessages({});
         } finally {
+          console.log('読み込み完了');
           setLoading(false);
         }
+      } else {
+        console.log('ユーザーが未認証');
+        setLoading(false);
       }
     };
 
@@ -53,11 +84,20 @@ export default function FriendList() {
     }
   };
 
+  const handleFriendClick = (friend: any) => {
+    const params = new URLSearchParams({
+      friendId: friend.id,
+      friendName: friend.displayName,
+      friendProfileImage: friend.profileImageUrl || ''
+    });
+    navigate(`/message?${params.toString()}`);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 p-2 md:p-4 overflow-hidden relative">
       {/* ヘッダー */}
       <Header 
-        headerTitle="Friend List" 
+        headerTitle="Chat" 
         page="home" 
         onBack={() => navigate('/home')} 
         onSettingsClick={() => {}} 
@@ -78,7 +118,11 @@ export default function FriendList() {
         ) : (
           <div className="space-y-3">
             {friends.map((friend) => (
-              <div key={friend.id} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 flex items-center space-x-3">
+              <div 
+                key={friend.id} 
+                onClick={() => handleFriendClick(friend)}
+                className="bg-white/10 backdrop-blur-sm rounded-xl p-4 flex items-center space-x-3 cursor-pointer hover:bg-white/15 transition-all duration-200"
+              >
                 <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                   {friend.profileImageUrl ? (
                     <img 
@@ -92,18 +136,15 @@ export default function FriendList() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-white font-semibold">{friend.displayName}</h3>
-                  {friend.email && (
-                    <p className="text-white/60 text-sm">{friend.email}</p>
+                  {lastMessages[friend.id] ? (
+                    <p className="text-white/60 text-sm truncate">
+                      {lastMessages[friend.id]?.senderId === user?.uid ? 'あなた: ' : ''}
+                      {lastMessages[friend.id]?.content}
+                    </p>
+                  ) : (
+                    <p className="text-white/40 text-sm">メッセージがありません</p>
                   )}
                 </div>
-                <button 
-                  onClick={() => handleCallFriend(friend)}
-                  className="bg-green-500/80 hover:bg-green-500 text-white p-3 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl"
-                >
-                  <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M22 16.92V21a2 2 0 0 1-2.18 2A19.72 19.72 0 0 1 3 5.18 2 2 0 0 1 5 3h4.09a2 2 0 0 1 2 1.72c.13 1.13.37 2.23.72 3.28a2 2 0 0 1-.45 2.11l-1.27 1.27a16 16 0 0 0 6.29 6.29l1.27-1.27a2 2 0 0 1 2.11-.45c1.05.35 2.15.59 3.28.72A2 2 0 0 1 22 16.92z"/>
-                  </svg>
-                </button>
               </div>
             ))}
           </div>

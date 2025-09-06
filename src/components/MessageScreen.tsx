@@ -1,0 +1,209 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import ChatHeader from './ChatHeader';
+import CallConfirmModal from './CallConfirmModal';
+import { useAuth } from '../contexts/AuthContext';
+import { messageService, Message } from '../services/MessageService';
+import { callService } from '../services/CallService';
+
+export default function MessageScreen() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [showCallConfirm, setShowCallConfirm] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // URLパラメータからフレンド情報を取得
+  const friendId = new URLSearchParams(location.search).get('friendId');
+  const friendName = new URLSearchParams(location.search).get('friendName');
+  const friendProfileImage = new URLSearchParams(location.search).get('friendProfileImage');
+
+  // メッセージを自動でスクロール
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // メッセージを取得
+  useEffect(() => {
+    if (!user || !friendId) return;
+
+    // まず空の配列で表示を開始
+    setMessages([]);
+    setLoading(false);
+
+    // その後、リアルタイム監視を開始
+    const unsubscribe = messageService.watchMessages(user.uid, friendId, (newMessages) => {
+      setMessages(newMessages);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user, friendId]);
+
+  // メッセージを送信
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !user || !friendId || sending) return;
+
+    setSending(true);
+    try {
+      await messageService.sendMessage(
+        user.uid,
+        friendId,
+        newMessage.trim(),
+        user.displayName || 'ユーザー'
+      );
+      setNewMessage('');
+    } catch (error) {
+      console.error('メッセージ送信エラー:', error);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Enterキーで送信
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  // 通話確認モーダルを表示
+  const handleCallClick = () => {
+    setShowCallConfirm(true);
+  };
+
+  // 通話を開始（確認後）
+  const handleCallConfirm = async () => {
+    if (!user || !friendId || !friendName) return;
+
+    setShowCallConfirm(false);
+
+    try {
+      console.log('通話開始:', { callerId: user.uid, friendId, callerName: user.displayName, friendName });
+      
+      // 通話ルームを作成
+      const roomId = await callService.createCallRoom(
+        user.uid,
+        friendId,
+        user.displayName || 'ユーザー',
+        friendName
+      );
+      
+      console.log('通話ルーム作成完了:', roomId);
+      
+      // Call画面に遷移
+      navigate(`/caller?roomId=${roomId}`);
+    } catch (error) {
+      console.error('通話開始エラー:', error);
+    }
+  };
+
+  // 通話をキャンセル
+  const handleCallCancel = () => {
+    setShowCallConfirm(false);
+  };
+
+  // メッセージの時刻をフォーマット
+  const formatTime = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+    } else {
+      return date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 flex items-center justify-center">
+        <p className="text-white/80">読み込み中...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 flex flex-col overflow-hidden">
+      {/* ヘッダー */}
+      <ChatHeader 
+        title={friendName || 'メッセージ'} 
+        onBack={() => navigate('/friends')} 
+        onCallClick={handleCallClick} 
+      />
+
+      {/* メッセージ一覧 */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3">
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`flex ${message.senderId === user?.uid ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl break-words ${
+                message.senderId === user?.uid
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-white/20 text-white backdrop-blur-sm'
+              }`}
+            >
+              <p className="text-sm">{message.content}</p>
+              <p className={`text-xs mt-1 ${
+                message.senderId === user?.uid ? 'text-blue-100' : 'text-white/60'
+              }`}>
+                {formatTime(message.timestamp)}
+              </p>
+            </div>
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* メッセージ入力エリア */}
+      <div className="p-3 bg-white/5 backdrop-blur-sm border-t border-white/10">
+        <div className="flex gap-3 max-w-full">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="メッセージを入力..."
+            className="flex-1 min-w-0 px-4 py-2 bg-white/20 border border-white/30 rounded-full text-white placeholder-white/60 focus:outline-none  focus:ring-cyan-300 focus:border-transparent backdrop-blur-sm"
+            disabled={sending}
+          />
+          {newMessage.trim() && (
+            <button
+              onClick={handleSendMessage}
+              disabled={sending}
+            >
+              {sending ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <img src="/send-icon.png" alt="送信" className="w-6 h-10 object-contain" />
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 通話確認モーダル */}
+      {showCallConfirm && (
+        <CallConfirmModal
+          friendName={friendName || 'ユーザー'}
+          onConfirm={handleCallConfirm}
+          onCancel={handleCallCancel}
+        />
+      )}
+    </div>
+  );
+}

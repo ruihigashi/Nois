@@ -12,6 +12,7 @@ import Home from '../Home';
 import Caller from '../components/Caller';
 import Reception from '../components/Reception';
 import FriendList from '../components/FriendList';
+import MessageScreen from '../components/MessageScreen';
 import App from '../App';
 import Answer from '../Answer';
 
@@ -83,6 +84,12 @@ function AppRoutes() {
         <Route path="/friends" element={
           <ProtectedRoute>
             <FriendList />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/message" element={
+          <ProtectedRoute>
+            <MessageScreen />
           </ProtectedRoute>
         } />
         

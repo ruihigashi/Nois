@@ -11,6 +11,7 @@ import IncomingCallModal from "./components/IncomingCallModal";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./contexts/AuthContext";
 import { useAutoCall } from "./hooks/useAutoCall";
+import { callService } from "./services/CallService";
 
 type Role = "caller" | "answerer";
 
@@ -76,7 +77,7 @@ export default function App({ forcedRole }: AppProps = {}) {
   const [showFriendList, setShowFriendList] = useState<boolean>(false);
 
   // 自動通話機能
-  const { incomingCall, answerCall, rejectCall } = useAutoCall({
+  const { incomingCall, answerCall, rejectCall, startCall } = useAutoCall({
     userId: user?.uid || '',
     userName: user?.displayName || 'ユーザー',
     pc,
@@ -94,6 +95,29 @@ export default function App({ forcedRole }: AppProps = {}) {
       showToast("通話が終了されました");
     }
   });
+
+  // URLパラメータからroomIdを取得して通話を開始
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('roomId');
+    
+    if (roomId && user) {
+      console.log('URLからroomIdを取得:', roomId);
+      // 通話ルームの状態を監視
+      const unsubscribe = callService.watchCallRoom(roomId, (room) => {
+        if (room && room.status === 'answered') {
+          console.log('通話が応答されました');
+          setIsInCall(true);
+          setShowMediaUI(true);
+          setShowConnectionUI(false);
+        }
+      });
+      
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, [user]);
 
   // Translation / TTS
   const [fromLang, setFromLang] = useState<Lang>("auto");
