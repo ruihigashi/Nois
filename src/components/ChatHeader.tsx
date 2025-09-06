@@ -8,7 +8,7 @@ interface ChatHeaderProps {
 
 export default function ChatHeader({ title, onBack, onCallClick }: ChatHeaderProps) {
   return (
-    <header className="flex items-center justify-between px-2 mt―6 p-2 border-b border-slate-200 overflow-visible relative z-10 max-w-full">
+    <header className="flex items-center justify-between px-4 py-3 border-b border-slate-200 overflow-visible relative z-10 max-w-full">
       <div className="flex items-center min-w-0 flex-1">
         <button 
           onClick={onBack} 

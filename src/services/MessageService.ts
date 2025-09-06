@@ -15,22 +15,33 @@ class MessageService {
   private messagesRef = ref(database, 'messages');
 
   // メッセージを送信
-  async sendMessage(senderId: string, receiverId: string, content: string, senderName: string): Promise<string> {
-    const messageRef = push(this.messagesRef);
-    const messageId = messageRef.key!;
-    
-    const message: Message = {
-      id: messageId,
-      senderId,
-      receiverId,
-      content,
-      timestamp: Date.now(),
-      senderName,
-      isRead: false
-    };
+  async sendMessage(senderId: string, senderName: string, receiverId: string, content: string): Promise<string> {
+    try {
+      console.log('MessageService: メッセージ送信開始', { senderId, senderName, receiverId, content });
+      
+      const messageRef = push(this.messagesRef);
+      const messageId = messageRef.key!;
+      
+      const message: Message = {
+        id: messageId,
+        senderId,
+        receiverId,
+        content,
+        timestamp: Date.now(),
+        senderName,
+        isRead: false
+      };
 
-    await set(messageRef, message);
-    return messageId;
+      console.log('MessageService: メッセージデータ作成完了', message);
+      
+      await set(messageRef, message);
+      console.log('MessageService: メッセージ送信成功', messageId);
+      
+      return messageId;
+    } catch (error) {
+      console.error('MessageService: メッセージ送信エラー', error);
+      throw error;
+    }
   }
 
   // ユーザー間の最後のメッセージを取得

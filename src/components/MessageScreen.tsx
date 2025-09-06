@@ -53,17 +53,26 @@ export default function MessageScreen() {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user || !friendId || sending) return;
 
+    console.log('メッセージ送信開始:', {
+      senderId: user.uid,
+      senderName: user.displayName,
+      receiverId: friendId,
+      content: newMessage.trim()
+    });
+
     setSending(true);
     try {
-      await messageService.sendMessage(
+      const messageId = await messageService.sendMessage(
         user.uid,
+        user.displayName || 'ユーザー',
         friendId,
-        newMessage.trim(),
-        user.displayName || 'ユーザー'
+        newMessage.trim()
       );
+      console.log('メッセージ送信成功:', messageId);
       setNewMessage('');
     } catch (error) {
       console.error('メッセージ送信エラー:', error);
+      alert('メッセージの送信に失敗しました。もう一度お試しください。');
     } finally {
       setSending(false);
     }
@@ -135,16 +144,18 @@ export default function MessageScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 flex flex-col overflow-hidden">
+    <div className="h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 flex flex-col overflow-hidden">
       {/* ヘッダー */}
-      <ChatHeader 
-        title={friendName || 'メッセージ'} 
-        onBack={() => navigate('/friends')} 
-        onCallClick={handleCallClick} 
-      />
+      <div className="flex-shrink-0">
+        <ChatHeader 
+          title={friendName || 'メッセージ'} 
+          onBack={() => navigate('/friends')} 
+          onCallClick={handleCallClick} 
+        />
+      </div>
 
       {/* メッセージ一覧 */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3 min-h-0">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -170,26 +181,27 @@ export default function MessageScreen() {
       </div>
 
       {/* メッセージ入力エリア */}
-      <div className="p-3 bg-white/5 backdrop-blur-sm border-t border-white/10">
-        <div className="flex gap-3 max-w-full">
+      <div className="flex-shrink-0 p-2 sm:p-3 bg-white/5 backdrop-blur-sm border-t border-white/10">
+        <div className="flex gap-2 sm:gap-3 max-w-full">
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="メッセージを入力..."
-            className="flex-1 min-w-0 px-4 py-2 bg-white/20 border border-white/30 rounded-full text-white placeholder-white/60 focus:outline-none  focus:ring-cyan-300 focus:border-transparent backdrop-blur-sm"
+            className="flex-1 min-w-0 px-3 sm:px-4 py-2 sm:py-3 bg-white/20 border border-white/30 rounded-full text-white placeholder-white/60 focus:outline-none focus:ring-cyan-300 focus:border-transparent backdrop-blur-sm text-sm sm:text-base"
             disabled={sending}
           />
           {newMessage.trim() && (
             <button
               onClick={handleSendMessage}
               disabled={sending}
+              className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none flex-shrink-0"
             >
               {sending ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
-                <img src="/send-icon.png" alt="送信" className="w-6 h-10 object-contain" />
+                <img src="/send-icon.png" alt="送信" className="w-4 h-4 sm:w-5 sm:h-5 object-contain" />
               )}
             </button>
           )}
