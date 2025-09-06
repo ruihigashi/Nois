@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import ChatHeader from './ChatHeader';
 import CallConfirmModal from './CallConfirmModal';
 import { useAuth } from '../contexts/AuthContext';
-import { messageService, Message } from '../services/MessageService';
+import { hybridMessageService, Message } from '../services/HybridMessageService';
 import { callService } from '../services/CallService';
 
 export default function MessageScreen() {
@@ -39,8 +39,12 @@ export default function MessageScreen() {
     setMessages([]);
     setLoading(false);
 
+    // テスト用：ローカルストレージのみを使用
+    console.log('ローカルストレージのみでメッセージ送信をテストします');
+    hybridMessageService.disableFirestore();
+
     // その後、リアルタイム監視を開始
-    const unsubscribe = messageService.watchMessages(user.uid, friendId, (newMessages) => {
+    const unsubscribe = hybridMessageService.watchMessages(user.uid, friendId, (newMessages) => {
       setMessages(newMessages);
     });
 
@@ -62,32 +66,14 @@ export default function MessageScreen() {
 
     setSending(true);
     try {
-      // Firebase Database状態確認
-      console.log('Firebase Database状態確認開始...');
-      messageService.checkDatabaseStatus();
-      console.log('Firebase Database状態確認完了');
-
-      // Firebase接続テスト
-      console.log('Firebase接続テスト開始...');
-      const isConnected = await messageService.testConnection();
-      if (!isConnected) {
-        throw new Error('Firebase接続に失敗しました');
-      }
-      console.log('Firebase接続テスト成功');
-
-      // タイムアウト付きでメッセージ送信
-      const sendPromise = messageService.sendMessage(
+      // ハイブリッドメッセージサービスで送信
+      console.log('メッセージ送信開始...');
+      const messageId = await hybridMessageService.sendMessage(
         user.uid,
         user.displayName || 'ユーザー',
         friendId,
         newMessage.trim()
       );
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('メッセージ送信タイムアウト')), 15000)
-      );
-      
-      const messageId = await Promise.race([sendPromise, timeoutPromise]);
       console.log('メッセージ送信成功:', messageId);
       setNewMessage('');
     } catch (error) {
@@ -165,7 +151,7 @@ export default function MessageScreen() {
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 flex flex-col overflow-hidden">
+    <div className="h-screen max-h-screen w-screen max-w-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 flex flex-col overflow-hidden fixed inset-0">
       {/* ヘッダー */}
       <div className="flex-shrink-0">
         <ChatHeader 
@@ -176,12 +162,18 @@ export default function MessageScreen() {
       </div>
 
       {/* メッセージ一覧 */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3 min-h-0">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3 min-h-0 max-h-full">
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`flex ${message.senderId === user?.uid ? 'justify-end' : 'justify-start'}`}
+            className={`flex items-end gap-2 ${message.senderId === user?.uid ? 'justify-end' : 'justify-start'}`}
           >
+            {/* 時刻表示（左側） */}
+            <div className="text-xs text-white/60 mb-1 flex-shrink-0">
+              {formatTime(message.timestamp)}
+            </div>
+            
+            {/* メッセージバブル */}
             <div
               className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl break-words ${
                 message.senderId === user?.uid
@@ -190,11 +182,6 @@ export default function MessageScreen() {
               }`}
             >
               <p className="text-sm">{message.content}</p>
-              <p className={`text-xs mt-1 ${
-                message.senderId === user?.uid ? 'text-blue-100' : 'text-white/60'
-              }`}>
-                {formatTime(message.timestamp)}
-              </p>
             </div>
           </div>
         ))}

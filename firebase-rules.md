@@ -64,6 +64,46 @@
 
 **注意**: 本番環境では絶対に使用しないでください。セキュリティ上のリスクがあります。
 
+### 4. 認証ベースのルール（推奨）
+```json
+{
+  "rules": {
+    "messages": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "callRooms": {
+      ".read": "auth != null", 
+      ".write": "auth != null"
+    },
+    "test": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
+  }
+}
+```
+
+### 5. デバッグ用のルール（一時的）
+```json
+{
+  "rules": {
+    "messages": {
+      ".read": true,
+      ".write": true
+    },
+    "callRooms": {
+      ".read": true,
+      ".write": true
+    },
+    "test": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}
+```
+
 ### 4. ルールの説明
 - `auth != null`: 認証されたユーザーのみがアクセス可能
 - `messages`: メッセージデータの読み書き権限

@@ -543,7 +543,7 @@ export default function App({ forcedRole }: AppProps = {}) {
   }
 
   return (
-    <div className={`min-h-screen ${page==='call' ? 'bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900' : 'bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900'} p-2 md:p-4 overflow-hidden relative`}>
+    <div className={`h-screen max-h-screen ${page==='call' ? 'bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900' : 'bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900'} p-2 md:p-4 overflow-hidden relative`}>
       {/* 背景画像 - CallとReception画面にのみ表示 */}
       {page === 'call' && (
         <div 

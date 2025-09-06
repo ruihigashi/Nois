@@ -4,7 +4,7 @@ import Header from "./Header";
 import { useAuth } from "../contexts/AuthContext";
 import { getFriendsList } from "../services/qrService";
 import { useAutoCall } from "../hooks/useAutoCall";
-import { messageService, Message } from "../services/MessageService";
+import { hybridMessageService, Message } from "../services/HybridMessageService";
 
 export default function FriendList() {
   const navigate = useNavigate();
@@ -42,7 +42,7 @@ export default function FriendList() {
             const friendIds = friendsList.map(friend => friend.id);
             
             // メッセージ取得を非同期で実行
-            messageService.getLastMessagesForUser(user.uid, friendIds)
+            hybridMessageService.getLastMessagesForUser(user.uid, friendIds)
               .then(lastMessages => {
                 console.log('メッセージ取得成功:', lastMessages);
                 setLastMessages(lastMessages);
@@ -94,7 +94,7 @@ export default function FriendList() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 p-2 md:p-4 overflow-hidden relative">
+    <div className="h-screen max-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 p-2 md:p-4 overflow-hidden relative">
       {/* ヘッダー */}
       <Header 
         headerTitle="Chat" 

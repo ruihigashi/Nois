@@ -28,7 +28,7 @@ class MessageService {
       }
       
       console.log('MessageService: Database状態正常');
-    } catch (error) {
+    } catch (error: any) {
       console.error('MessageService: Database状態確認エラー', error);
       if (error instanceof Error) {
         throw error;
@@ -45,27 +45,29 @@ class MessageService {
       console.log('MessageService: Database URL:', database.app.options.databaseURL);
       console.log('MessageService: Database connected:', database.app.name);
       
+      // より簡単なテストデータで試行
       const testRef = ref(database, 'test');
       console.log('MessageService: テスト参照作成:', testRef.toString());
       
       const testData = { test: true, timestamp: Date.now() };
       console.log('MessageService: テストデータ:', testData);
       
-      await set(testRef, testData);
+      // タイムアウトを短くしてテスト
+      const writePromise = set(testRef, testData);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('テスト書き込みタイムアウト')), 5000)
+      );
+      
+      await Promise.race([writePromise, timeoutPromise]);
       console.log('MessageService: Firebase接続テスト成功');
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('MessageService: Firebase接続テスト失敗', error);
-      const errorInfo = error instanceof Error ? {
-        name: error.name,
-        message: error.message,
-        code: (error as any)?.code || 'Unknown',
-        stack: error.stack
-      } : {
-        name: 'Unknown',
-        message: String(error),
-        code: 'Unknown',
-        stack: 'No stack trace'
+      const errorInfo = {
+        name: error?.name || 'Unknown',
+        message: error?.message || String(error),
+        code: error?.code || 'Unknown',
+        stack: error?.stack || 'No stack trace'
       };
       console.error('MessageService: エラー詳細:', errorInfo);
       return false;
@@ -116,7 +118,7 @@ class MessageService {
       console.log('MessageService: メッセージ送信成功', result);
       
       return messageId;
-    } catch (error) {
+    } catch (error: any) {
       console.error('MessageService: メッセージ送信エラー', error);
       if (error instanceof Error) {
         throw error;
