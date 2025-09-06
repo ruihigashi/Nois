@@ -62,17 +62,33 @@ export default function MessageScreen() {
 
     setSending(true);
     try {
-      const messageId = await messageService.sendMessage(
+      // Firebase接続テスト
+      console.log('Firebase接続テスト開始...');
+      const isConnected = await messageService.testConnection();
+      if (!isConnected) {
+        throw new Error('Firebase接続に失敗しました');
+      }
+      console.log('Firebase接続テスト成功');
+
+      // タイムアウト付きでメッセージ送信
+      const sendPromise = messageService.sendMessage(
         user.uid,
         user.displayName || 'ユーザー',
         friendId,
         newMessage.trim()
       );
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('メッセージ送信タイムアウト')), 15000)
+      );
+      
+      const messageId = await Promise.race([sendPromise, timeoutPromise]);
       console.log('メッセージ送信成功:', messageId);
       setNewMessage('');
     } catch (error) {
       console.error('メッセージ送信エラー:', error);
-      alert('メッセージの送信に失敗しました。もう一度お試しください。');
+      const errorMessage = error instanceof Error ? error.message : 'メッセージの送信に失敗しました';
+      alert(`${errorMessage}。もう一度お試しください。`);
     } finally {
       setSending(false);
     }

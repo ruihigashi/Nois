@@ -14,6 +14,20 @@ export interface Message {
 class MessageService {
   private messagesRef = ref(database, 'messages');
 
+  // Firebase接続テスト
+  async testConnection(): Promise<boolean> {
+    try {
+      console.log('MessageService: Firebase接続テスト開始');
+      const testRef = ref(database, 'test');
+      await set(testRef, { test: true, timestamp: Date.now() });
+      console.log('MessageService: Firebase接続テスト成功');
+      return true;
+    } catch (error) {
+      console.error('MessageService: Firebase接続テスト失敗', error);
+      return false;
+    }
+  }
+
   // メッセージを送信
   async sendMessage(senderId: string, senderName: string, receiverId: string, content: string): Promise<string> {
     try {
@@ -34,8 +48,28 @@ class MessageService {
 
       console.log('MessageService: メッセージデータ作成完了', message);
       
-      await set(messageRef, message);
-      console.log('MessageService: メッセージ送信成功', messageId);
+      // タイムアウト付きでFirebase書き込み
+      console.log('MessageService: Firebase書き込み開始...');
+      console.log('MessageService: 書き込み先パス:', messageRef.toString());
+      
+      const writePromise = set(messageRef, message).then(() => {
+        console.log('MessageService: set()完了');
+        return messageId;
+      }).catch((error) => {
+        console.error('MessageService: set()エラー詳細:', error);
+        throw error;
+      });
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => {
+          console.error('MessageService: タイムアウト発生');
+          reject(new Error('Firebase書き込みタイムアウト'));
+        }, 10000)
+      );
+      
+      const result = await Promise.race([writePromise, timeoutPromise]);
+      console.log('MessageService: Firebase書き込み完了');
+      console.log('MessageService: メッセージ送信成功', result);
       
       return messageId;
     } catch (error) {
