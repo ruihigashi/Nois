@@ -62,6 +62,11 @@ export default function MessageScreen() {
 
     setSending(true);
     try {
+      // Firebase Database状態確認
+      console.log('Firebase Database状態確認開始...');
+      messageService.checkDatabaseStatus();
+      console.log('Firebase Database状態確認完了');
+
       // Firebase接続テスト
       console.log('Firebase接続テスト開始...');
       const isConnected = await messageService.testConnection();

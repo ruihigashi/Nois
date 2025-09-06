@@ -12,7 +12,8 @@ const firebaseConfig = {
   storageBucket: "nois-app-add5a.firebasestorage.app",
   messagingSenderId: "908384895475",
   appId: "1:908384895475:web:54c4f2f3ba537fa2219286",
-  measurementId: "G-NP62JFLCLV"
+  measurementId: "G-NP62JFLCLV",
+  databaseURL: "https://nois-app-add5a-default-rtdb.firebaseio.com/"
 };
 
 // Firebase初期化

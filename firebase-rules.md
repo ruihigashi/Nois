@@ -1,7 +1,27 @@
-# Firebase Realtime Database ルール設定
+# Firebase Realtime Database 設定とルール
 
 ## 問題の原因
-メッセージ送信がタイムアウトする原因は、Firebase Realtime Databaseのセキュリティルールが適切に設定されていない可能性があります。
+デプロイ後のサイトで404エラーが発生する原因は以下の可能性があります：
+
+1. **Firebase Realtime Databaseが有効になっていない**
+2. **Database URLが設定されていない**
+3. **セキュリティルールが適切に設定されていない**
+4. **デプロイ時の設定に問題がある**
+
+## 解決手順
+
+### 1. Firebase Realtime Databaseの有効化
+1. https://console.firebase.google.com/ にアクセス
+2. プロジェクト「nois-app-add5a」を選択
+3. 左メニューから「Realtime Database」を選択
+4. 「データベースを作成」をクリック
+5. セキュリティルールを選択（後で設定可能）
+6. リージョンを選択（asia-northeast1 推奨）
+
+### 2. Database URLの確認
+1. Realtime Database画面で「データベースURL」をコピー
+2. 通常は `https://nois-app-add5a-default-rtdb.firebaseio.com/` の形式
+3. このURLが `firebase/config.ts` の `databaseURL` に設定されているか確認
 
 ## 解決方法
 

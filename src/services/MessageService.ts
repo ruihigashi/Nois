@@ -14,16 +14,50 @@ export interface Message {
 class MessageService {
   private messagesRef = ref(database, 'messages');
 
+  // Firebase Realtime Databaseの状態確認
+  checkDatabaseStatus(): void {
+    try {
+      console.log('MessageService: Database状態確認');
+      console.log('MessageService: Database app:', database.app);
+      console.log('MessageService: Database options:', database.app.options);
+      console.log('MessageService: Database URL:', database.app.options.databaseURL);
+      
+      if (!database.app.options.databaseURL) {
+        console.error('MessageService: Database URLが設定されていません');
+        throw new Error('Database URLが設定されていません');
+      }
+      
+      console.log('MessageService: Database状態正常');
+    } catch (error) {
+      console.error('MessageService: Database状態確認エラー', error);
+      throw error;
+    }
+  }
+
   // Firebase接続テスト
   async testConnection(): Promise<boolean> {
     try {
       console.log('MessageService: Firebase接続テスト開始');
+      console.log('MessageService: Database URL:', database.app.options.databaseURL);
+      console.log('MessageService: Database connected:', database.app.name);
+      
       const testRef = ref(database, 'test');
-      await set(testRef, { test: true, timestamp: Date.now() });
+      console.log('MessageService: テスト参照作成:', testRef.toString());
+      
+      const testData = { test: true, timestamp: Date.now() };
+      console.log('MessageService: テストデータ:', testData);
+      
+      await set(testRef, testData);
       console.log('MessageService: Firebase接続テスト成功');
       return true;
     } catch (error) {
       console.error('MessageService: Firebase接続テスト失敗', error);
+      console.error('MessageService: エラー詳細:', {
+        name: error.name,
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      });
       return false;
     }
   }
