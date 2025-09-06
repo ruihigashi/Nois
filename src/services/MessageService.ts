@@ -30,7 +30,11 @@ class MessageService {
       console.log('MessageService: Database状態正常');
     } catch (error) {
       console.error('MessageService: Database状態確認エラー', error);
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error(String(error));
+      }
     }
   }
 
@@ -52,12 +56,18 @@ class MessageService {
       return true;
     } catch (error) {
       console.error('MessageService: Firebase接続テスト失敗', error);
-      console.error('MessageService: エラー詳細:', {
+      const errorInfo = error instanceof Error ? {
         name: error.name,
         message: error.message,
-        code: error.code,
+        code: (error as any)?.code || 'Unknown',
         stack: error.stack
-      });
+      } : {
+        name: 'Unknown',
+        message: String(error),
+        code: 'Unknown',
+        stack: 'No stack trace'
+      };
+      console.error('MessageService: エラー詳細:', errorInfo);
       return false;
     }
   }
@@ -108,7 +118,11 @@ class MessageService {
       return messageId;
     } catch (error) {
       console.error('MessageService: メッセージ送信エラー', error);
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error(String(error));
+      }
     }
   }
 
