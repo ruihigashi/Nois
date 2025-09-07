@@ -27,14 +27,25 @@ export function useAutoCall({
   const [isCallActive, setIsCallActive] = useState(false);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
+  // 着信状態のデバッグログ
+  useEffect(() => {
+    console.log('着信状態が変更されました:', { incomingCall, currentRoomId, isCallActive });
+  }, [incomingCall, currentRoomId, isCallActive]);
+
   // 着信通知を監視
   useEffect(() => {
-        const unsubscribe = hybridCallService.watchIncomingCall(userId, (incomingCall) => {
+    if (!userId) return;
+
+    const unsubscribe = hybridCallService.watchIncomingCall(userId, (incomingCall) => {
+      console.log('着信通知を受信:', incomingCall);
       setIncomingCall(incomingCall);
     });
 
     return () => {
+      console.log('着信監視を停止');
       unsubscribe();
+      // コンポーネントアンマウント時に着信状態をクリア
+      setIncomingCall(null);
     };
   }, [userId]);
 
@@ -144,17 +155,29 @@ export function useAutoCall({
   const answerCall = async () => {
     if (!incomingCall) return;
 
-    await hybridCallService.updateCallRoomStatus(incomingCall.roomId, 'answered');
-    setCurrentRoomId(incomingCall.roomId);
-    setIncomingCall(null);
+    try {
+      await hybridCallService.updateCallRoomStatus(incomingCall.roomId, 'answered');
+      await hybridCallService.clearIncomingCall(userId);
+      setCurrentRoomId(incomingCall.roomId);
+      setIncomingCall(null);
+    } catch (error) {
+      console.error('着信応答エラー:', error);
+      setIncomingCall(null);
+    }
   };
 
   // 着信を拒否
   const rejectCall = async () => {
     if (!incomingCall) return;
 
-    await hybridCallService.updateCallRoomStatus(incomingCall.roomId, 'rejected');
-    setIncomingCall(null);
+    try {
+      await hybridCallService.updateCallRoomStatus(incomingCall.roomId, 'rejected');
+      await hybridCallService.clearIncomingCall(userId);
+      setIncomingCall(null);
+    } catch (error) {
+      console.error('着信拒否エラー:', error);
+      setIncomingCall(null);
+    }
   };
 
   // 通話を開始

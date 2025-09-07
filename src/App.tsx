@@ -31,6 +31,31 @@ export default function App({ forcedRole }: AppProps = {}) {
   const [role, setRole] = useState<Role>(forcedRole ?? "caller");
   const localSDPRef = useRef<HTMLTextAreaElement>(null);
   const remoteSDPRef = useRef<HTMLTextAreaElement>(null);
+
+  // forcedRoleが変更された場合にroleも更新
+  useEffect(() => {
+    console.log('App: forcedRole changed', { forcedRole, currentRole: role });
+    if (forcedRole) {
+      setRole(forcedRole);
+    }
+  }, [forcedRole, role]);
+
+  // ページ遷移時に着信状態をクリア
+  useEffect(() => {
+    if (page === 'home') {
+      // ホーム画面に戻った時に着信状態をクリア
+      console.log('ホーム画面に戻りました - 着信状態をクリア');
+    }
+  }, [page]);
+
+  // アプリケーション開始時に着信状態をクリア
+  useEffect(() => {
+    if (user?.uid) {
+      console.log('アプリケーション開始 - 着信状態をクリア');
+      // 着信状態をクリア
+      hybridCallService.clearIncomingCall(user.uid).catch(console.error);
+    }
+  }, [user?.uid]);
   const [dataChannel, setDataChannel] = useState<RTCDataChannel | null>(null);
   const [dcState, setDcState] = useState<"closed"|"connecting"|"open">("closed");
   const dcQueueRef = useRef<string[]>([]);
@@ -798,8 +823,8 @@ export default function App({ forcedRole }: AppProps = {}) {
       {/* ナビゲーションバー（フッター） */}
       <Footer />
 
-      {/* 着信通知モーダル */}
-      {incomingCall && (
+      {/* 着信通知モーダル - call画面でのみ表示 */}
+      {incomingCall && page === 'call' && (
         <IncomingCallModal
           incomingCall={incomingCall}
           onAccept={answerCall}

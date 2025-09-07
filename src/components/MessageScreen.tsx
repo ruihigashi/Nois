@@ -106,16 +106,26 @@ export default function MessageScreen() {
     setShowCallConfirm(false);
 
     try {
-      console.log('Call画面に遷移:', { callerId: user.uid, friendId, callerName: user.displayName, friendName });
+      console.log('通話開始:', { callerId: user.uid, friendId, callerName: user.displayName, friendName });
       
-      // 発信処理は行わず、直接Call画面に遷移
+      // 通話ルームを作成
+      const roomId = await hybridCallService.createCallRoom(
+        user.uid,
+        friendId,
+        user.displayName || 'ユーザー',
+        friendName
+      );
+      
+      console.log('通話ルーム作成完了:', roomId);
+      
+      // Call画面に遷移（friendNameも含める）
       const params = new URLSearchParams({
-        friendId: friendId,
+        roomId: roomId,
         friendName: friendName || 'ユーザー'
       });
       navigate(`/caller?${params.toString()}`);
     } catch (error) {
-      console.error('Call画面遷移エラー:', error);
+      console.error('通話開始エラー:', error);
     }
   };
 
