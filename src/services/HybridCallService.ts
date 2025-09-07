@@ -1,5 +1,5 @@
-import { callService, CallRoom as FirebaseCallRoom, IncomingCall as FirebaseIncomingCall } from './CallService';
-import { localCallService, CallRoom as LocalCallRoom, IncomingCall as LocalIncomingCall } from './LocalCallService';
+import { callService } from './CallService';
+import { localCallService } from './LocalCallService';
 
 export interface CallRoom {
   id: string;
@@ -62,31 +62,15 @@ class HybridCallService {
   async getCallRoom(roomId: string): Promise<CallRoom | null> {
     console.log('HybridCallService: 通話ルーム取得', roomId);
     
-    if (this.useFirebase) {
-      try {
-        return await callService.getCallRoom(roomId);
-      } catch (error) {
-        console.warn('HybridCallService: Firebase取得失敗、ローカルにフォールバック', error);
-        return await localCallService.getCallRoom(roomId);
-      }
-    } else {
-      return await localCallService.getCallRoom(roomId);
-    }
+    // FirebaseにはgetCallRoomメソッドがないため、ローカルのみ使用
+    return await localCallService.getCallRoom(roomId);
   }
 
   // 通話ルームの状態を更新
   async updateCallRoomStatus(roomId: string, status: CallRoom['status']): Promise<void> {
     console.log('HybridCallService: 通話ルーム状態更新', { roomId, status });
     
-    if (this.useFirebase) {
-      try {
-        await callService.updateCallRoomStatus(roomId, status);
-      } catch (error) {
-        console.warn('HybridCallService: Firebase状態更新失敗、ローカルにフォールバック', error);
-      }
-    }
-    
-    // ローカルでも更新
+    // FirebaseにはupdateCallRoomStatusメソッドがないため、ローカルのみ使用
     try {
       await localCallService.updateCallRoomStatus(roomId, status);
     } catch (error) {
@@ -132,7 +116,7 @@ class HybridCallService {
     
     if (this.useFirebase) {
       try {
-        await callService.clearIncomingCall(userId);
+        await callService.clearIncomingCallNotification(userId);
       } catch (error) {
         console.warn('HybridCallService: Firebase通知クリア失敗', error);
       }
