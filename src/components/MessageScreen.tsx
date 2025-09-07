@@ -4,7 +4,7 @@ import ChatHeader from './ChatHeader';
 import CallConfirmModal from './CallConfirmModal';
 import { useAuth } from '../contexts/AuthContext';
 import { hybridMessageService, Message } from '../services/HybridMessageService';
-import { callService } from '../services/CallService';
+import { hybridCallService } from '../services/HybridCallService';
 
 export default function MessageScreen() {
   const navigate = useNavigate();
@@ -42,6 +42,7 @@ export default function MessageScreen() {
     // テスト用：ローカルストレージのみを使用
     console.log('ローカルストレージのみでメッセージ送信をテストします');
     hybridMessageService.disableFirestore();
+    hybridCallService.disableFirebase();
 
     // その後、リアルタイム監視を開始
     const unsubscribe = hybridMessageService.watchMessages(user.uid, friendId, (newMessages) => {
@@ -108,7 +109,7 @@ export default function MessageScreen() {
       console.log('通話開始:', { callerId: user.uid, friendId, callerName: user.displayName, friendName });
       
       // 通話ルームを作成
-      const roomId = await callService.createCallRoom(
+      const roomId = await hybridCallService.createCallRoom(
         user.uid,
         friendId,
         user.displayName || 'ユーザー',
@@ -117,8 +118,12 @@ export default function MessageScreen() {
       
       console.log('通話ルーム作成完了:', roomId);
       
-      // Call画面に遷移
-      navigate(`/caller?roomId=${roomId}`);
+      // Call画面に遷移（friendNameも含める）
+      const params = new URLSearchParams({
+        roomId: roomId,
+        friendName: friendName || 'ユーザー'
+      });
+      navigate(`/caller?${params.toString()}`);
     } catch (error) {
       console.error('通話開始エラー:', error);
     }

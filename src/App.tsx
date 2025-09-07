@@ -11,7 +11,7 @@ import IncomingCallModal from "./components/IncomingCallModal";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./contexts/AuthContext";
 import { useAutoCall } from "./hooks/useAutoCall";
-import { callService } from "./services/CallService";
+import { hybridCallService } from "./services/HybridCallService";
 
 type Role = "caller" | "answerer";
 
@@ -96,15 +96,22 @@ export default function App({ forcedRole }: AppProps = {}) {
     }
   });
 
-  // URLパラメータからroomIdを取得して通話を開始
+  // URLパラメータからroomIdとfriendNameを取得
+  const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
+  const [currentFriendName, setCurrentFriendName] = useState<string | null>(null);
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const roomId = urlParams.get('roomId');
+    const friendName = urlParams.get('friendName');
     
     if (roomId && user) {
       console.log('URLからroomIdを取得:', roomId);
+      setCurrentRoomId(roomId);
+      setCurrentFriendName(friendName);
+      
       // 通話ルームの状態を監視
-      const unsubscribe = callService.watchCallRoom(roomId, (room) => {
+      const unsubscribe = hybridCallService.watchCallRoom(roomId, (room) => {
         if (room && room.status === 'answered') {
           console.log('通話が応答されました');
           setIsInCall(true);
@@ -590,6 +597,8 @@ export default function App({ forcedRole }: AppProps = {}) {
                   localSDPRef={localSDPRef}
                   remoteSDPRef={remoteSDPRef}
                   localStreamRef={localStreamRef}
+                  roomId={currentRoomId}
+                  friendName={currentFriendName}
                   micEnabled={micEnabled}
                   micMuted={micMuted}
                   isInCall={isInCall}

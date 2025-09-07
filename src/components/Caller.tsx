@@ -7,6 +7,10 @@ interface CallerProps {
   remoteSDPRef: React.RefObject<HTMLTextAreaElement>;
   localStreamRef: React.RefObject<MediaStream | null>;
   
+  // 通話情報
+  roomId?: string;
+  friendName?: string;
+  
   // 状態管理
   micEnabled: boolean;
   micMuted: boolean;
@@ -36,6 +40,8 @@ export default function Caller({
   localSDPRef,
   remoteSDPRef,
   localStreamRef,
+  roomId,
+  friendName,
   micEnabled,
   micMuted,
   isInCall,
@@ -56,6 +62,18 @@ export default function Caller({
 }: CallerProps) {
   return (
     <div>
+      {/* 発信中表示 */}
+      {roomId && !isInCall && (
+        <div className="text-center mb-4">
+          <div className="text-white text-lg font-semibold mb-2">
+            {friendName ? `${friendName}さんに発信中...` : '発信中...'}
+          </div>
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+          </div>
+        </div>
+      )}
+      
       <div className={`${micEnabled ? 'flex flex-wrap items-center gap-2' : 'flex justify-center'} mt-2 mb-3`}>
         <button onClick={micEnabled?stopMic:startMic} className={"px-3 py-2 text-white text-lg font-medium border rounded " + (micEnabled ? "bg-red-600 border-red-600" : "bg-blue-600 border-blue-600")}>
           {micEnabled ? "Call Stop" : "Call Start "}

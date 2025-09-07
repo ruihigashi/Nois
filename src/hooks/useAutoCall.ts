@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ref, get } from 'firebase/database';
 import { database } from '../firebase/config';
-import { callService, CallRoom } from '../services/CallService';
+import { hybridCallService, CallRoom } from '../services/HybridCallService';
 
 interface UseAutoCallProps {
   userId: string;
@@ -29,7 +29,7 @@ export function useAutoCall({
 
   // 着信通知を監視
   useEffect(() => {
-    const unsubscribe = callService.watchIncomingCall(userId, (incomingCall) => {
+        const unsubscribe = hybridCallService.watchIncomingCall(userId, (incomingCall) => {
       setIncomingCall(incomingCall);
     });
 
@@ -42,7 +42,7 @@ export function useAutoCall({
   useEffect(() => {
     if (!currentRoomId) return;
 
-    const unsubscribe = callService.watchCallRoom(currentRoomId, (room: CallRoom | null) => {
+    const unsubscribe = hybridCallService.watchCallRoom(currentRoomId, (room: CallRoom | null) => {
       if (!room) return;
 
       if (room.status === 'answered' && !isCallActive) {
@@ -97,7 +97,7 @@ export function useAutoCall({
       await pc.setLocalDescription(answer);
       
       // Answerを保存
-      await callService.saveSdpAnswer(room.id, JSON.stringify(answer));
+      await hybridCallService.updateCallRoomStatus(room.id, 'answered');
     } catch (error) {
       console.error('Answer作成エラー:', error);
     }
@@ -116,7 +116,7 @@ export function useAutoCall({
       await pc.setLocalDescription(offer);
       
       // Offerを保存
-      await callService.saveSdpOffer(room.id, JSON.stringify(offer));
+      await hybridCallService.updateCallRoomStatus(room.id, 'answered');
       
       // Answerを待つ
       const checkForAnswer = setInterval(async () => {
@@ -144,7 +144,7 @@ export function useAutoCall({
   const answerCall = async () => {
     if (!incomingCall) return;
 
-    await callService.answerCall(incomingCall.roomId, userId);
+    await hybridCallService.updateCallRoomStatus(incomingCall.roomId, 'answered');
     setCurrentRoomId(incomingCall.roomId);
     setIncomingCall(null);
   };
@@ -153,14 +153,14 @@ export function useAutoCall({
   const rejectCall = async () => {
     if (!incomingCall) return;
 
-    await callService.rejectCall(incomingCall.roomId, userId);
+    await hybridCallService.updateCallRoomStatus(incomingCall.roomId, 'rejected');
     setIncomingCall(null);
   };
 
   // 通話を開始
   const startCall = async (friendId: string, friendName: string) => {
     try {
-      const roomId = await callService.createCallRoom(userId, friendId, userName, friendName);
+      const roomId = await hybridCallService.createCallRoom(userId, friendId, userName, friendName);
       setCurrentRoomId(roomId);
       navigate(`/caller?roomId=${roomId}`);
     } catch (error) {
@@ -171,8 +171,7 @@ export function useAutoCall({
   // 通話を終了
   const endCall = async () => {
     if (currentRoomId) {
-      await callService.endCall(currentRoomId);
-      await callService.deleteCallRoom(currentRoomId);
+      await hybridCallService.endCall(currentRoomId);
     }
     handleCallEnded();
   };
