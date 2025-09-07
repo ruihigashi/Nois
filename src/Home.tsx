@@ -85,7 +85,7 @@ export default function Home() {
               phoneNumber: ''
             });
             setFormData({
-              displayName: user.displayName || 'ユーザー',
+              displayName: user.displayName || 'ユーザ',
               phoneNumber: '',
               email: user.email || ''
             });
