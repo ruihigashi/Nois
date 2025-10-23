@@ -335,21 +335,6 @@ export default function QRScanner() {
             <span className="text-white text-xs sm:text-sm text-center leading-tight">検索</span>
           </button>
         </div>
-
-        {/* テスト用QR ID入力 */}
-        <div className="flex justify-center">
-          <button 
-            onClick={() => {
-              const qrId = prompt('テスト用: QR IDを入力してください（例: yTCDQPeS）');
-              if (qrId && qrId.trim()) {
-                handleQRCodeDetected(qrId.trim());
-              }
-            }}
-            className="bg-white/20 text-white px-3 py-2 rounded-lg text-xs sm:text-sm hover:bg-white/30 transition-colors whitespace-nowrap"
-          >
-            テスト用: QR ID入力
-          </button>
-        </div>
       </div>
 
       {/* キャンバス（QRコード検出用） */}

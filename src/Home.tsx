@@ -4,6 +4,7 @@ import { useAuth } from "./contexts/AuthContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebase/config";
+import Footer from './components/Footer';
 
 const icons = {
   user: <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>,
@@ -233,42 +234,11 @@ export default function Home() {
             <img src="/discover-icon.png" alt="friend" className="w-8 h-8 object-contain" />
             <span className="text-2xl font-extrabold bg-gradient-to-r from-cyan-300 to-blue-200 bg-clip-text text-transparent tracking-tight">Chat</span>
           </button>
-          <div className="w-full max-w-sm grid grid-cols-2 gap-4">
-            <button onClick={() => navigate('/caller')} className="flex flex-row items-center justify-center border-2 border-blue-300/50 rounded-xl py-3 bg-white/10 backdrop-blur-sm shadow-md active:scale-95 transition-all gap-2">
-              <img src="/call-icon.png" alt="call" className="w-10 h-9 object-contain" />
-              <span className="text-xl font-extrabold bg-gradient-to-r from-blue-200 to-cyan-300 bg-clip-text text-transparent">Call</span>
-            </button>
-            <button onClick={() => navigate('/reception')} className="flex flex-row items-center justify-center border-2 border-blue-300/50 rounded-xl py-3 bg-white/10 backdrop-blur-sm shadow-md active:scale-95 transition-all gap-2">
-              <img src="/reception-icon.png" alt="reception" className="w-10 h-10 object-contain" />
-              <span className="text-xl font-extrabold bg-gradient-to-r from-purple-200 to-pink-300 bg-clip-text text-transparent">Reception</span>
-            </button>
-          </div>
+
         </div>
       </main>
 
-      {/* ナビゲーションバー */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/10 backdrop-blur-md border-t border-blue-300/30 flex justify-around items-center h-16 z-20">
-        <button 
-          onClick={() => navigate('/home')}
-          className="flex flex-col items-center hover:opacity-80 transition-opacity"
-        >
-          <img src="/home.png" alt="home" className="w-7 h-7 object-contain" />
-        </button>
-        <button className="flex flex-col items-center"><img src="/discover-icon.png" alt="discover" className="w-7 h-7 object-contain" /></button>
-        <button 
-          onClick={() => navigate('/caller')}
-          className="flex flex-col items-center justify-center hover:opacity-80 transition-opacity"
-        >
-          <img src="/logo.png" alt="logo" className="w-10 h-10 object-contain" style={{marginTop: '-2px'}} />
-        </button>
-        <button className="flex flex-col items-center"><img src="/icon_beru.png" alt="bell" className="w-7 h-7 object-contain" /></button>
-        <button 
-          onClick={() => navigate('/settings')}
-          className="flex flex-col items-center hover:opacity-80 transition-opacity"
-        >
-          <img src="/icon-settings.png" alt="settings" className="w-7 h-7 object-contain" />
-        </button>
-      </nav>
+      <Footer />
 
       {/* プロフィールモーダル */}
       {showProfileModal && (

@@ -12,9 +12,14 @@ export default function Footer() {
       >
         <img src="/home.png" alt="home" className="w-7 h-7 object-contain" />
       </button>
-      <button className="flex flex-col items-center"><img src="/discover-icon.png" alt="discover" className="w-7 h-7 object-contain" /></button>
+      <button
+        onClick={() => navigate('/friends')}
+        className="flex flex-col items-center hover:opacity-80 transition-opacity"
+      >
+        <img src="/discover-icon.png" alt="discover" className="w-7 h-7 object-contain" />
+      </button>
       <button 
-        onClick={() => navigate('/caller')}
+        onClick={() => navigate('/call-screen')}
         className="flex flex-col items-center justify-center hover:opacity-80 transition-opacity"
       >
         <img src="/logo.png" alt="logo" className="w-10 h-10 object-contain" style={{marginTop: '-2px'}} />

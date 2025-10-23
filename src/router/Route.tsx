@@ -13,6 +13,7 @@ import Caller from '../components/Caller';
 import Reception from '../components/Reception';
 import FriendList from '../components/FriendList';
 import MessageScreen from '../components/MessageScreen';
+import CallScreen from '../components/CallScreen'; // 追加
 import App from '../App';
 import Answer from '../Answer';
 
@@ -84,6 +85,12 @@ function AppRoutes() {
         <Route path="/friends" element={
           <ProtectedRoute>
             <FriendList />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/call-screen" element={ // 追加
+          <ProtectedRoute>
+            <CallScreen />
           </ProtectedRoute>
         } />
         

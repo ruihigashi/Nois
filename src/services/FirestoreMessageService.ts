@@ -44,45 +44,64 @@ class FirestoreMessageService {
   watchMessages(userId1: string, userId2: string, callback: (messages: Message[]) => void) {
     try {
       console.log('FirestoreMessageService: メッセージ監視開始', { userId1, userId2 });
-      
-      const q = query(
-        this.messagesCollection,
-        where('senderId', 'in', [userId1, userId2]),
-        where('receiverId', 'in', [userId1, userId2]),
-        orderBy('timestamp', 'asc')
-      );
 
-      const unsubscribe = onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
-        try {
-          const messages: Message[] = [];
-          snapshot.forEach((doc) => {
-            const data = doc.data() as any;
-            // 送信者と受信者が正しい組み合わせかチェック
-            if ((data.senderId === userId1 && data.receiverId === userId2) ||
-                (data.senderId === userId2 && data.receiverId === userId1)) {
-              messages.push({
-                id: doc.id,
-                senderId: data.senderId,
-                receiverId: data.receiverId,
-                content: data.content,
-                timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp,
-                senderName: data.senderName,
-                isRead: data.isRead
-              });
-            }
-          });
-          
-          console.log('FirestoreMessageService: メッセージ取得完了', messages.length, '件');
-          callback(messages);
-        } catch (error) {
-          console.error('FirestoreMessageService: メッセージ処理エラー', error);
-          callback([]);
-        }
+      const queries = [
+        // userId1 -> userId2
+        query(
+          this.messagesCollection,
+          where('senderId', '==', userId1),
+          where('receiverId', '==', userId2)
+        ),
+        // userId2 -> userId1
+        query(
+          this.messagesCollection,
+          where('senderId', '==', userId2),
+          where('receiverId', '==', userId1)
+        )
+      ];
+
+      let allMessages: { [id: string]: Message } = {};
+      let unsubscribers: (() => void)[] = [];
+
+      const processSnapshot = (snapshot: QuerySnapshot<DocumentData>) => {
+        snapshot.docChanges().forEach((change) => {
+          const data = change.doc.data();
+          const message: Message = {
+            id: change.doc.id,
+            senderId: data.senderId,
+            receiverId: data.receiverId,
+            content: data.content,
+            timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp,
+            senderName: data.senderName,
+            isRead: data.isRead
+          };
+
+          if (change.type === "removed") {
+            delete allMessages[message.id];
+          } else {
+            allMessages[message.id] = message;
+          }
+        });
+
+        const sortedMessages = Object.values(allMessages).sort((a, b) => a.timestamp - b.timestamp);
+        console.log('FirestoreMessageService: メッセージ更新', sortedMessages.length, '件');
+        callback(sortedMessages);
+      };
+
+      queries.forEach(q => {
+        const unsubscribe = onSnapshot(q, processSnapshot, (error) => {
+          console.error("Firestore監視エラー:", error);
+        });
+        unsubscribers.push(unsubscribe);
       });
 
-      return unsubscribe;
+      // 全てのリスナーを解除する関数を返す
+      return () => {
+        unsubscribers.forEach(unsub => unsub());
+      };
+
     } catch (error: any) {
-      console.error('FirestoreMessageService: メッセージ監視エラー', error);
+      console.error('FirestoreMessageService: メッセージ監視セットアップエラー', error);
       return () => {};
     }
   }

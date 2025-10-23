@@ -3,70 +3,29 @@ import { useNavigate } from "react-router-dom";
 import Header from "./Header";
 import { useAuth } from "../contexts/AuthContext";
 import { getFriendsList } from "../services/qrService";
-import { useAutoCall } from "../hooks/useAutoCall";
-import { hybridMessageService, Message } from "../services/HybridMessageService";
+import CallConfirmModal from "./CallConfirmModal";
+import { hybridCallService } from "../services/HybridCallService";
 import Footer from './Footer';
 
-export default function FriendList() {
+export default function CallScreen() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lastMessages, setLastMessages] = useState<Record<string, Message | null>>({});
-  const [pc] = useState<RTCPeerConnection | null>(null);
-  const localStreamRef = React.useRef<MediaStream | null>(null);
-
-  // 自動通話機能
-  const { startCall } = useAutoCall({
-    userId: user?.uid || '',
-    userName: user?.displayName || 'ユーザー',
-    pc,
-    localStreamRef,
-    onCallConnected: () => {},
-    onCallEnded: () => {}
-  });
+  const [selectedFriend, setSelectedFriend] = useState<any>(null);
+  const [showCallConfirm, setShowCallConfirm] = useState(false);
 
   useEffect(() => {
     const fetchFriends = async () => {
       if (user) {
-        console.log('フレンドリスト取得開始, userId:', user.uid);
-        
         try {
-          // まずフレンドリストのみを取得
           const friendsList = await getFriendsList(user.uid);
-          console.log('フレンドリスト取得成功:', friendsList);
           setFriends(friendsList);
-          
-          // メッセージ取得は後で非同期で実行（読み込みをブロックしない）
-          if (friendsList.length > 0) {
-            console.log('メッセージ取得開始（非同期）');
-            const friendIds = friendsList.map(friend => friend.id);
-            
-            // メッセージ取得を非同期で実行
-            hybridMessageService.getLastMessagesForUser(user.uid, friendIds)
-              .then(lastMessages => {
-                console.log('メッセージ取得成功:', lastMessages);
-                setLastMessages(lastMessages);
-              })
-              .catch(error => {
-                console.error('メッセージ取得エラー:', error);
-                setLastMessages({});
-              });
-          } else {
-            console.log('フレンドが0人');
-          }
         } catch (error) {
           console.error('友達リスト取得エラー:', error);
-          // エラーが発生しても読み込みを終了
-          setFriends([]);
-          setLastMessages({});
         } finally {
-          console.log('読み込み完了');
           setLoading(false);
         }
-      } else {
-        console.log('ユーザーが未認証');
-        setLoading(false);
       }
     };
 
@@ -77,35 +36,49 @@ export default function FriendList() {
     navigate('/qr-scanner');
   };
 
-  const handleCallFriend = async (friend: any) => {
+  const handleFriendClick = (friend: any) => {
+    setSelectedFriend(friend);
+    setShowCallConfirm(true);
+  };
+
+  const handleCallConfirm = async () => {
+    if (!user || !selectedFriend) return;
+
+    setShowCallConfirm(false);
+
     try {
-      await startCall(friend.id, friend.displayName);
+      const roomId = await hybridCallService.createCallRoom(
+        user.uid,
+        selectedFriend.id,
+        user.displayName || 'ユーザー',
+        selectedFriend.displayName
+      );
+      
+      const params = new URLSearchParams({
+        roomId: roomId,
+        friendName: selectedFriend.displayName || 'ユーザー'
+      });
+      navigate(`/caller?${params.toString()}`);
     } catch (error) {
       console.error('通話開始エラー:', error);
     }
   };
 
-  const handleFriendClick = (friend: any) => {
-    const params = new URLSearchParams({
-      friendId: friend.id,
-      friendName: friend.displayName,
-      friendProfileImage: friend.profileImageUrl || ''
-    });
-    navigate(`/message?${params.toString()}`);
+  const handleCallCancel = () => {
+    setShowCallConfirm(false);
+    setSelectedFriend(null);
   };
 
   return (
     <div className="h-screen max-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 p-2 md:p-4 overflow-hidden relative">
-      {/* ヘッダー */}
       <Header 
-        headerTitle="Chat" 
-        page="home" 
+        headerTitle="Call"
+        page="call"
         onBack={() => navigate('/home')} 
         onSettingsClick={() => {}} 
         onPlusClick={handlePlusClick}
       />
 
-      {/* メインコンテンツエリア */}
       <main className="flex-1 bg-white/5 backdrop-blur-sm relative z-10 p-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">
@@ -137,14 +110,10 @@ export default function FriendList() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-white font-semibold">{friend.displayName}</h3>
-                  {lastMessages[friend.id] ? (
-                    <p className="text-white/60 text-sm truncate">
-                      {lastMessages[friend.id]?.senderId === user?.uid ? 'あなた: ' : ''}
-                      {lastMessages[friend.id]?.content}
-                    </p>
-                  ) : (
-                    <p className="text-white/40 text-sm">メッセージがありません</p>
-                  )}
+                  <p className="text-white/60 text-sm">Tap to call</p>
+                </div>
+                <div className="w-10 h-10 flex items-center justify-center">
+                  <img src="/call-icon.png" alt="Call" className="w-6 h-6 opacity-50" />
                 </div>
               </div>
             ))}
@@ -152,8 +121,15 @@ export default function FriendList() {
         )}
       </main>
       
-      {/* ナビゲーションバー（フッター） */}
       <Footer />
+
+      {showCallConfirm && selectedFriend && (
+        <CallConfirmModal
+          friendName={selectedFriend.displayName}
+          onConfirm={handleCallConfirm}
+          onCancel={handleCallCancel}
+        />
+      )}
     </div>
   );
 }

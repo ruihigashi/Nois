@@ -39,12 +39,7 @@ export default function MessageScreen() {
     setMessages([]);
     setLoading(false);
 
-    // テスト用：ローカルストレージのみを使用
-    console.log('ローカルストレージのみでメッセージ送信をテストします');
-    hybridMessageService.disableFirestore();
-    hybridCallService.disableFirebase();
-
-    // その後、リアルタイム監視を開始
+    // リアルタイム監視を開始
     const unsubscribe = hybridMessageService.watchMessages(user.uid, friendId, (newMessages) => {
       setMessages(newMessages);
     });
