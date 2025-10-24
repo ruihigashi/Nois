@@ -56,6 +56,18 @@ class CallService {
     await set(ref(database, `userNotifications/${userId}/incomingCall`), incomingCall);
   }
 
+  // 通話ルームを取得
+  async getCallRoom(roomId: string): Promise<CallRoom | null> {
+    const roomRef = ref(database, `callRooms/${roomId}`);
+    const snapshot = await get(roomRef);
+    return snapshot.val() as CallRoom | null;
+  }
+
+  // 通話ルームの状態を更新
+  async updateCallRoomStatus(roomId: string, status: CallRoom['status']): Promise<void> {
+    await set(ref(database, `callRooms/${roomId}/status`), status);
+  }
+
   // 通話に応答
   async answerCall(roomId: string, friendId: string) {
     await set(ref(database, `callRooms/${roomId}/status`), 'answered');

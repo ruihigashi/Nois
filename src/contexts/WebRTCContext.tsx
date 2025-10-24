@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, ReactNode, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { useAutoCall as useAutoCallHook, IncomingCall } from '../hooks/useAutoCall';
@@ -18,6 +18,7 @@ interface WebRTCContextType {
   startCall: (friendId: string, friendName: string) => Promise<void>;
   endCall: (updateDb?: boolean) => Promise<void>;
   isCallActive: boolean;
+  resetPeerConnection: () => void;
 }
 
 const WebRTCContext = createContext<WebRTCContextType | undefined>(undefined);
@@ -31,33 +32,42 @@ export function useWebRTC() {
 }
 
 export function WebRTCProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { currentUser: user } = useAuth();
   const [pc, setPc] = useState<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const [micEnabled, setMicEnabled] = useState(false);
 
-  useEffect(() => {
+  const createPeerConnection = useCallback(() => {
     const newPc = new RTCPeerConnection({ iceServers });
-    setPc(newPc);
-
     newPc.ontrack = (event) => {
       if (remoteAudioRef.current) {
         remoteAudioRef.current.srcObject = event.streams[0];
       }
     };
+    setPc(newPc);
+    return newPc;
+  }, []);
 
+  useEffect(() => {
+    const newPc = createPeerConnection();
     return () => {
       newPc.close();
     };
-  }, []);
+  }, [createPeerConnection]);
+
+  const resetPeerConnection = useCallback(() => {
+    if (pc) {
+      pc.close();
+    }
+    createPeerConnection();
+  }, [pc, createPeerConnection]);
 
   const startMic = async () => {
     if (!pc) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localStreamRef.current = stream;
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
       setMicEnabled(true);
     } catch (error) {
       console.error("Error starting mic:", error);
@@ -85,7 +95,10 @@ export function WebRTCProvider({ children }: { children: ReactNode }) {
     pc,
     localStreamRef,
     onCallConnected: () => { console.log('Call connected'); },
-    onCallEnded: () => { console.log('Call ended'); },
+    onCallEnded: () => { 
+      console.log('Call ended'); 
+      resetPeerConnection();
+    },
   });
 
   const value = {
@@ -101,6 +114,7 @@ export function WebRTCProvider({ children }: { children: ReactNode }) {
     startCall,
     endCall,
     isCallActive,
+    resetPeerConnection,
   };
 
   return (

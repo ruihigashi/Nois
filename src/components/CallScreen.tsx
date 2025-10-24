@@ -11,15 +11,12 @@ import { useWebRTC } from "../contexts/WebRTCContext";
 export default function CallScreen() {
   const navigate = useNavigate();
   const { currentUser: user } = useAuth();
-  const { startCall } = useWebRTC();
+  const { startCall, startMic, endCall } = useWebRTC();
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFriend, setSelectedFriend] = useState<any>(null);
   const [showCallConfirm, setShowCallConfirm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-
-  // Quick Call friend
-  const quickCallFriend = useMemo(() => (friends.length > 0 ? friends[0] : null), [friends]);
 
   // Translation / TTS
   const [fromLang, setFromLang] = useState<Lang>("auto");
@@ -87,7 +84,13 @@ export default function CallScreen() {
   const handleCallConfirm = async () => {
     if (!user || !selectedFriend) return;
     setShowCallConfirm(false);
-    await startCall(selectedFriend.id, selectedFriend.displayName);
+    try {
+      await startMic();
+      await startCall(selectedFriend.id, selectedFriend.displayName);
+    } catch (error) {
+      console.error("Failed to start call:", error);
+      endCall(); // エラー時にクリーンアップ処理を呼ぶ
+    }
   };
 
   const handleCallCancel = () => {
@@ -146,7 +149,6 @@ export default function CallScreen() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-white font-semibold">{friend.displayName}</h3>
-                  <p className="text-white/60 text-sm">Tap to call</p>
                 </div>
                 <div className="w-10 h-10 flex items-center justify-center">
                   <img src="/call-icon.png" alt="Call" className="w-6 h-6 opacity-50" />

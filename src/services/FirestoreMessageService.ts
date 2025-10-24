@@ -1,4 +1,4 @@
-import { collection, addDoc, query, where, orderBy, onSnapshot, Timestamp, QuerySnapshot, DocumentData } from 'firebase/firestore';
+import { collection, addDoc, query, where, orderBy, onSnapshot, Timestamp, QuerySnapshot, DocumentData, getDocs, limit } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
 export interface Message {
@@ -119,35 +119,35 @@ class FirestoreMessageService {
             this.messagesCollection,
             where('senderId', 'in', [userId, friendId]),
             where('receiverId', 'in', [userId, friendId]),
-            orderBy('timestamp', 'desc')
+            orderBy('timestamp', 'desc'),
+            limit(1)
           );
 
-          // 簡単な方法として、最新の1件を取得
-          const snapshot = await new Promise<QuerySnapshot<DocumentData>>((resolve, reject) => {
-            const unsubscribe = onSnapshot(q, (snapshot) => {
-              unsubscribe();
-              resolve(snapshot);
-            }, reject);
-          });
+          const snapshot = await getDocs(q);
 
-          let lastMessage: Message | null = null;
-          snapshot.forEach((doc) => {
-            const data = doc.data() as any;
-            if ((data.senderId === userId && data.receiverId === friendId) ||
-                (data.senderId === friendId && data.receiverId === userId)) {
-              lastMessage = {
-                id: doc.id,
-                senderId: data.senderId,
-                receiverId: data.receiverId,
-                content: data.content,
-                timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp,
-                senderName: data.senderName,
-                isRead: data.isRead
-              };
-            }
-          });
+          if (snapshot.empty) {
+            lastMessages[friendId] = null;
+            continue;
+          }
 
-          lastMessages[friendId] = lastMessage;
+          const doc = snapshot.docs[0];
+          const data = doc.data();
+
+          // Additional check to ensure it's a message between the two users
+          if ((data.senderId === userId && data.receiverId === friendId) || (data.senderId === friendId && data.receiverId === userId)) {
+            lastMessages[friendId] = {
+              id: doc.id,
+              senderId: data.senderId,
+              receiverId: data.receiverId,
+              content: data.content,
+              timestamp: data.timestamp?.toMillis ? data.timestamp.toMillis() : data.timestamp,
+              senderName: data.senderName,
+              isRead: data.isRead
+            };
+          } else {
+            lastMessages[friendId] = null;
+          }
+
         } catch (error) {
           console.error(`フレンド ${friendId} のメッセージ取得エラー:`, error);
           lastMessages[friendId] = null;

@@ -58,23 +58,75 @@ class HybridCallService {
     }
   }
 
+  // SDPオファーを保存
+  async saveSdpOffer(roomId: string, sdpOffer: string): Promise<void> {
+    if (this.useFirebase) {
+      try {
+        await callService.saveSdpOffer(roomId, sdpOffer);
+      } catch (error) {
+        console.warn('Firebase saveSdpOffer failed, falling back to local', error);
+        await localCallService.saveSdpOffer(roomId, sdpOffer);
+      }
+    } else {
+      await localCallService.saveSdpOffer(roomId, sdpOffer);
+    }
+  }
+
+  // SDPアンサーを保存
+  async saveSdpAnswer(roomId: string, sdpAnswer: string): Promise<void> {
+    if (this.useFirebase) {
+      try {
+        await callService.saveSdpAnswer(roomId, sdpAnswer);
+      } catch (error) {
+        console.warn('Firebase saveSdpAnswer failed, falling back to local', error);
+        await localCallService.saveSdpAnswer(roomId, sdpAnswer);
+      }
+    } else {
+      await localCallService.saveSdpAnswer(roomId, sdpAnswer);
+    }
+  }
+
+  // ICE候補を追加
+  async addIceCandidate(roomId: string, candidate: RTCIceCandidateInit, role: 'caller' | 'answerer'): Promise<void> {
+    if (this.useFirebase) {
+      try {
+        await callService.addIceCandidate(roomId, candidate, role);
+      } catch (error) {
+        console.warn('Firebase addIceCandidate failed, falling back to local', error);
+        await localCallService.addIceCandidate(roomId, candidate, role);
+      }
+    } else {
+      await localCallService.addIceCandidate(roomId, candidate, role);
+    }
+  }
+
   // 通話ルームを取得
   async getCallRoom(roomId: string): Promise<CallRoom | null> {
     console.log('HybridCallService: 通話ルーム取得', roomId);
-    
-    // FirebaseにはgetCallRoomメソッドがないため、ローカルのみ使用
-    return await localCallService.getCallRoom(roomId);
+    if (this.useFirebase) {
+      try {
+        return await callService.getCallRoom(roomId);
+      } catch (error) {
+        console.warn('HybridCallService: Firebase getCallRoom 失敗、ローカルにフォールバック', error);
+        return await localCallService.getCallRoom(roomId);
+      }
+    } else {
+      return await localCallService.getCallRoom(roomId);
+    }
   }
 
   // 通話ルームの状態を更新
   async updateCallRoomStatus(roomId: string, status: CallRoom['status']): Promise<void> {
     console.log('HybridCallService: 通話ルーム状態更新', { roomId, status });
-    
-    // FirebaseにはupdateCallRoomStatusメソッドがないため、ローカルのみ使用
-    try {
+    if (this.useFirebase) {
+      try {
+        await callService.updateCallRoomStatus(roomId, status);
+      } catch (error) {
+        console.warn('HybridCallService: Firebase updateCallRoomStatus 失敗、ローカルにフォールバック', error);
+        await localCallService.updateCallRoomStatus(roomId, status);
+      }
+    } else {
       await localCallService.updateCallRoomStatus(roomId, status);
-    } catch (error) {
-      console.warn('HybridCallService: ローカル状態更新失敗', error);
     }
   }
 
