@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Lang, Translator, translate } from "./translate";
 import Caller from "./components/Caller";
-import Reception from "./components/Reception";
 import MediaUI from "./components/MediaUI";
 import Header from "./components/Header";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -19,7 +18,7 @@ type Tab = "call" | "settings";
 export default function App({ forcedRole }: AppProps = {}) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { currentUser: user } = useAuth();
 
   const {
     pc,
@@ -48,6 +47,7 @@ export default function App({ forcedRole }: AppProps = {}) {
 
   const queryParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const roomId = queryParams.get('roomId');
+  const friendId = queryParams.get('friendId');
   const friendName = queryParams.get('friendName');
 
   const [fromLang, setFromLang] = useState<Lang>("auto");
@@ -56,6 +56,25 @@ export default function App({ forcedRole }: AppProps = {}) {
   const [ttsLang, setTtsLang] = useState<"auto" | "ja" | "en">("auto");
   const [ttsVoiceName, setTtsVoiceName] = useState<string>("");
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
+
+  const wireDataChannel = useCallback((ch: RTCDataChannel) => {
+    setDataChannel(ch);
+    ch.onopen = () => {
+      const q = dcQueueRef.current;
+      while (q.length) {
+        const txt = q.shift()!;
+        try { ch.send(JSON.stringify({ type: "caption", text: txt })); } catch {}
+      }
+    };
+    ch.onmessage = (ev) => {
+      try {
+        const msg = JSON.parse(ev.data);
+        if (msg.type === "caption") {
+          setCaptions((old) => [...old.slice(-50), msg.text]);
+        }
+      } catch {}
+    };
+  }, []);
 
   useEffect(() => {
     if (isCallActive) {
@@ -74,7 +93,7 @@ export default function App({ forcedRole }: AppProps = {}) {
         }
       };
     }
-  }, [pc, endCall]);
+  }, [pc, endCall, wireDataChannel]);
 
   useEffect(() => {
     function loadVoices(){
@@ -110,25 +129,6 @@ export default function App({ forcedRole }: AppProps = {}) {
   };
 
   function showToast(msg: string) { setToast(msg); setTimeout(()=>setToast(""), 1500); }
-
-  function wireDataChannel(ch: RTCDataChannel) {
-    setDataChannel(ch);
-    ch.onopen = () => {
-      const q = dcQueueRef.current;
-      while (q.length) {
-        const txt = q.shift()!;
-        try { ch.send(JSON.stringify({ type: "caption", text: txt })); } catch {}
-      }
-    };
-    ch.onmessage = (ev) => {
-      try {
-        const msg = JSON.parse(ev.data);
-        if (msg.type === "caption") {
-          setCaptions((old) => [...old.slice(-50), msg.text]);
-        }
-      } catch {}
-    };
-  }
   
   function toggleMute() {
     const stream = localStreamRef.current;
@@ -174,27 +174,31 @@ export default function App({ forcedRole }: AppProps = {}) {
 
   const headerTitle = role === 'caller' ? 'Call' : 'Reception';
 
+  const isCalling = forcedRole === 'caller' && !isCallActive;
+
+  const containerClass = isCalling
+    ? "h-screen max-h-screen bg-black overflow-hidden relative"
+    : "h-screen max-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 p-2 md:p-4 overflow-hidden relative";
+
   return (
-    <div className={`h-screen max-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 p-2 md:p-4 overflow-hidden relative`}>
+    <div className={containerClass}>
       <div className={`h-full flex flex-col relative z-10`}>
         {toast && <div className="fixed top-4 right-4 z-50 rounded-xl bg-black/90 text-white px-4 py-2 text-base shadow-2xl font-semibold tracking-wide animate-fadein">{toast}</div>}
 
-        <Header 
-          headerTitle={headerTitle}
-          page="call"
-          onBack={() => navigate('/home')}
-          onSettingsClick={() => setTab("settings")}
-        />
+        {isCalling ? null : (
+          <Header 
+            headerTitle={headerTitle}
+            page="call"
+            onBack={() => navigate('/home')}
+            onSettingsClick={() => setTab("settings")}
+          />
+        )}
 
         {tab === "call" ? (
-          <div className={`flex-1 flex flex-col lg:flex-row overflow-hidden bg-white/5 backdrop-blur-sm pb-24`}>
+          <div className={`flex-1 flex flex-col lg:flex-row overflow-hidden ${isCalling ? '' : 'bg-white/5 backdrop-blur-sm pb-24'}`}>
             {!showMediaUI ? (
-              <div className="w-full p-4">
-                {role === "caller" ? (
-                  <Caller pc={pc} localStreamRef={localStreamRef} roomId={roomId ?? undefined} friendName={friendName ?? undefined} friendProfileImageUrl={queryParams.get('friendProfileImageUrl') ?? undefined} micEnabled={micEnabled} isInCall={isCallActive} startMic={startMic} stopMic={stopMic} endCall={endCall} forcedRole={forcedRole} micMuted={micMuted} toggleMute={toggleMute} />
-                ) : (
-                  <Reception pc={pc} localStreamRef={localStreamRef} micEnabled={micEnabled} isInCall={isCallActive} startMic={startMic} stopMic={stopMic} endCall={endCall} forcedRole={forcedRole} />
-                )}
+              <div className="w-full h-full p-4">
+                  <Caller />
               </div>
             ) : (
               <div className="w-full flex-1 flex flex-col space-y-3 p-4">

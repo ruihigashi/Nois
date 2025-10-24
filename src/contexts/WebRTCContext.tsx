@@ -19,6 +19,8 @@ interface WebRTCContextType {
   endCall: (updateDb?: boolean) => Promise<void>;
   isCallActive: boolean;
   resetPeerConnection: () => void;
+  micMuted: boolean;
+  toggleMute: () => void;
 }
 
 const WebRTCContext = createContext<WebRTCContextType | undefined>(undefined);
@@ -94,6 +96,7 @@ export function WebRTCProvider({ children }: { children: ReactNode }) {
     userName: user?.displayName || 'ユーザー',
     pc,
     localStreamRef,
+    startMic,
     onCallConnected: () => { console.log('Call connected'); },
     onCallEnded: () => { 
       console.log('Call ended'); 

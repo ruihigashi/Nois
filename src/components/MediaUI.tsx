@@ -43,7 +43,7 @@ export default function MediaUI({
   formatCallDuration
 }: MediaUIProps) {
   return (
-    <div className="w-full lg:w-full flex-1 flex flex-col space-y-3">
+    <div className="w-full h-full flex flex-col">
       {/* カメラ表示エリア */}
       <div>
         {/* 上部のIndigo長方形 */}
@@ -146,9 +146,8 @@ export default function MediaUI({
         <audio ref={remoteAudioRef} autoPlay playsInline className="w-full" />
       </div>
 
-      <div className="flex-1 overflow-hidden">
-        <div className="h-64 overflow-auto border border-gray-300 p-3 bg-gray-50 mb-3">
-          <div className="space-y-3">
+      <div className="flex-1 flex flex-col p-4 overflow-y-auto">
+        <div className="flex-1 space-y-3 overflow-y-auto border border-gray-300 p-3 bg-gray-50 mb-3">
             {captions.map((c,i) => {
               const isOwnMessage = c.startsWith("(you) ");
               const messageText = isOwnMessage ? c.replace("(you) ", "") : c;
@@ -164,7 +163,6 @@ export default function MediaUI({
                 </div>
               );
             })}
-          </div>
         </div>
         <div className="flex items-center gap-2">
           <input 
@@ -188,4 +186,3 @@ export default function MediaUI({
     </div>
   );
 }
-

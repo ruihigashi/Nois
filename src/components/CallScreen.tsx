@@ -89,7 +89,6 @@ export default function CallScreen() {
       await startCall(selectedFriend.id, selectedFriend.displayName);
     } catch (error) {
       console.error("Failed to start call:", error);
-      endCall(); // エラー時にクリーンアップ処理を呼ぶ
     }
   };
 
@@ -104,7 +103,7 @@ export default function CallScreen() {
 
         <Header 
 
-          headerTitle="Call"
+          headerTitle="Phone"
 
           page="call"
 

@@ -10,7 +10,6 @@ import MyQRCode from '../components/MyQRCode';
 import Settings from '../components/Settings';
 import Home from '../Home';
 import Caller from '../components/Caller';
-import Reception from '../components/Reception';
 import FriendList from '../components/FriendList';
 import MessageScreen from '../components/MessageScreen';
 import CallScreen from '../components/CallScreen'; // 追加
@@ -21,11 +20,6 @@ import Answer from '../Answer';
 // Caller画面用のラッパーコンポーネント
 function CallerPage() {
   return <App forcedRole="caller" />;
-}
-
-// Reception画面用のラッパーコンポーネント
-function ReceptionPage() {
-  return <App forcedRole="answerer" />;
 }
 
 // 認証が必要なルートの保護
@@ -81,7 +75,6 @@ function AppRoutes() {
 
       {/* 通話画面 (専用レイアウト) */}
       <Route path="/caller" element={<ProtectedRoute><CallerPage /></ProtectedRoute>} />
-      <Route path="/reception" element={<ProtectedRoute><ReceptionPage /></ProtectedRoute>} />
       
       {/* デフォルトルート */}
       <Route path="*" element={<Navigate to="/" replace />} />

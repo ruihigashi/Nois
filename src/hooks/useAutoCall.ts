@@ -7,6 +7,7 @@ interface UseAutoCallProps {
   userName: string;
   pc: RTCPeerConnection | null;
   localStreamRef: React.RefObject<MediaStream | null>;
+  startMic: () => Promise<void>;
   onCallConnected: () => void;
   onCallEnded: () => void;
 }
@@ -16,6 +17,7 @@ export function useAutoCall({
   userName,
   pc,
   localStreamRef,
+  startMic,
   onCallConnected,
   onCallEnded
 }: UseAutoCallProps) {
@@ -31,10 +33,24 @@ export function useAutoCall({
     const unsubscribe = hybridCallService.watchIncomingCall(userId, (call) => {
       if (call) {
         setIncomingCall(call);
+      } else {
+        setIncomingCall(null);
       }
     });
     return () => unsubscribe();
   }, [userId]);
+
+  // 着信中に相手がキャンセルしたのを検知
+  useEffect(() => {
+    if (incomingCall && incomingCall.roomId && !isCallActive) {
+      const unsubscribe = hybridCallService.watchCallRoom(incomingCall.roomId, (room) => {
+        if (!room || room.status === 'ended' || room.status === 'rejected') {
+          setIncomingCall(null);
+        }
+      });
+      return () => unsubscribe();
+    }
+  }, [incomingCall, isCallActive]);
 
   // 通話ルームの状態を監視し、シグナリングを処理
   useEffect(() => {
@@ -43,11 +59,16 @@ export function useAutoCall({
     const unsubscribe = hybridCallService.watchCallRoom(currentRoomId, async (room: CallRoom | null) => {
       if (!room) return;
 
-      // 相手が応答し、Answerがまだ設定されていない場合
-      if (room.sdpAnswer && pc.remoteDescription?.type !== 'answer') {
+      // 発信者のみがAnswerを処理する
+      if (room.callerId === userId && room.sdpAnswer && pc.remoteDescription?.type !== 'answer') {
         try {
           await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(room.sdpAnswer)));
           console.log('Answer設定完了');
+          // 発信側がAnswerを受け取ったら通話中にする
+          if (!isCallActive) {
+            setIsCallActive(true);
+            onCallConnected();
+          }
         } catch (error) {
           console.error('Answer設定エラー:', error);
         }
@@ -77,13 +98,16 @@ export function useAutoCall({
     });
 
     return () => unsubscribe();
-  }, [currentRoomId, pc, processedIceCandidates, userId]);
+  }, [currentRoomId, pc, processedIceCandidates, userId, isCallActive, onCallConnected]);
 
   // 着信に応答
   const answerCall = async () => {
-    if (!incomingCall || !pc || !localStreamRef.current) return;
+    if (!incomingCall || !pc) return;
 
-    const { roomId, callerId } = incomingCall;
+    await startMic();
+    if (!localStreamRef.current) return;
+
+    const { roomId } = incomingCall;
     setCurrentRoomId(roomId);
     setProcessedIceCandidates({});
 
@@ -99,7 +123,6 @@ export function useAutoCall({
       pc.addTrack(track, localStreamRef.current!);
     });
 
-    // Firestoreからルーム情報を一度だけ取得してOfferをセット
     const room = await hybridCallService.getCallRoom(roomId);
     if (room && room.sdpOffer) {
       try {
@@ -107,9 +130,10 @@ export function useAutoCall({
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         await hybridCallService.saveSdpAnswer(roomId, JSON.stringify(answer));
-        await hybridCallService.answerCall(roomId, userId);
+        await hybridCallService.updateCallRoomStatus(roomId, 'answered');
         setIsCallActive(true);
         onCallConnected();
+        navigate(`/caller?roomId=${roomId}&friendId=${room.callerId}&friendName=${room.callerName}`);
       } catch (error) {
         console.error('Answer処理エラー:', error);
       }
@@ -120,54 +144,56 @@ export function useAutoCall({
   // 着信を拒否
   const rejectCall = async () => {
     if (!incomingCall) return;
-    await hybridCallService.rejectCall(incomingCall.roomId, userId);
+    await hybridCallService.updateCallRoomStatus(incomingCall.roomId, 'rejected');
     setIncomingCall(null);
   };
 
   // 通話を開始
   const startCall = async (friendId: string, friendName: string) => {
     if (!pc || !localStreamRef.current) return;
-
-    const roomId = await hybridCallService.createCallRoom(userId, friendId, userName, friendName);
-    setCurrentRoomId(roomId);
-    setProcessedIceCandidates({});
-
-    // 相手（応答者）のICE候補をリッスン
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        hybridCallService.addIceCandidate(roomId, event.candidate.toJSON(), 'caller');
-      }
-    };
-
-    // 自分のメディアトラックを接続に追加
-    localStreamRef.current.getTracks().forEach(track => {
-      pc.addTrack(track, localStreamRef.current!);
-    });
-
+    let roomId: string | null = null;
     try {
+      roomId = await hybridCallService.createCallRoom(userId, friendId, userName, friendName);
+      setCurrentRoomId(roomId);
+      setProcessedIceCandidates({});
+
+      // 相手（応答者）のICE候補をリッスン
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          hybridCallService.addIceCandidate(roomId!, event.candidate.toJSON(), 'caller');
+        }
+      };
+
+      // 自分のメディアトラックを接続に追加
+      localStreamRef.current.getTracks().forEach(track => {
+        pc.addTrack(track, localStreamRef.current!);
+      });
+
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       await hybridCallService.saveSdpOffer(roomId, JSON.stringify(offer));
-      setIsCallActive(true);
-      onCallConnected();
-      navigate(`/caller?roomId=${roomId}&friendName=${friendName}`);
+      
+      navigate(`/caller?roomId=${roomId}&friendId=${friendId}&friendName=${friendName}`);
     } catch (error) {
-      console.error('Offer作成エラー:', error);
+      console.error('startCall Error:', error);
+      if (roomId) {
+        endCall();
+      }
     }
   };
 
   // 通話を終了
   const endCall = async (updateDb = true) => {
-    if (isCallActive) {
-      if (currentRoomId && updateDb) {
+    if (currentRoomId) {
+      if (updateDb) {
         await hybridCallService.endCall(currentRoomId);
       }
       setIsCallActive(false);
       setCurrentRoomId(null);
       setProcessedIceCandidates({});
-      pc?.close(); // ピア接続を閉じる
+      pc?.close();
       onCallEnded();
-      navigate('/friends'); // 通話終了後はフレンドリストに戻る
+      navigate(-1);
     }
   };
 

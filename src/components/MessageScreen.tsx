@@ -4,12 +4,13 @@ import ChatHeader from './ChatHeader';
 import CallConfirmModal from './CallConfirmModal';
 import { useAuth } from '../contexts/AuthContext';
 import { hybridMessageService, Message } from '../services/HybridMessageService';
-import { hybridCallService } from '../services/HybridCallService';
+import { useWebRTC } from '../contexts/WebRTCContext';
 
 export default function MessageScreen() {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser: user } = useAuth();
+  const { startCall, startMic } = useWebRTC();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -97,30 +98,12 @@ export default function MessageScreen() {
   // 通話を開始（確認後）
   const handleCallConfirm = async () => {
     if (!user || !friendId || !friendName) return;
-
     setShowCallConfirm(false);
-
     try {
-      console.log('通話開始:', { callerId: user.uid, friendId, callerName: user.displayName, friendName });
-      
-      // 通話ルームを作成
-      const roomId = await hybridCallService.createCallRoom(
-        user.uid,
-        friendId,
-        user.displayName || 'ユーザー',
-        friendName
-      );
-      
-      console.log('通話ルーム作成完了:', roomId);
-      
-      // Call画面に遷移（friendNameも含める）
-      const params = new URLSearchParams({
-        roomId: roomId,
-        friendName: friendName || 'ユーザー'
-      });
-      navigate(`/caller?${params.toString()}`);
+      await startMic();
+      await startCall(friendId, friendName);
     } catch (error) {
-      console.error('通話開始エラー:', error);
+      console.error("Failed to start call from message screen:", error);
     }
   };
 
