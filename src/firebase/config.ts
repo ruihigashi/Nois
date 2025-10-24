@@ -3,6 +3,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getDatabase } from 'firebase/database';
+import { getMessaging } from 'firebase/messaging';
 
 // Firebase設定
 const firebaseConfig = {
@@ -30,5 +31,8 @@ export const storage = getStorage(app);
 
 // Realtime Database初期化
 export const database = getDatabase(app);
+
+// Messaging初期化
+export const messaging = getMessaging(app);
 
 export default app;

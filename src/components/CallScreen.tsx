@@ -1,18 +1,16 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "./Header";
 import { useAuth } from "../contexts/AuthContext";
 import { getFriendsList } from "../services/qrService";
-import CallConfirmModal from "./CallConfirmModal";
-import { hybridCallService } from "../services/HybridCallService";
-import Footer from './Footer';
 import { Lang, Translator } from "../translate";
+import CallConfirmModal from "./CallConfirmModal";
+import Header from "./Header";
 
 import { useWebRTC } from "../contexts/WebRTCContext";
 
 export default function CallScreen() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { currentUser: user } = useAuth();
   const { startCall } = useWebRTC();
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,11 +18,12 @@ export default function CallScreen() {
   const [showCallConfirm, setShowCallConfirm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
+  // Quick Call friend
+  const quickCallFriend = useMemo(() => (friends.length > 0 ? friends[0] : null), [friends]);
+
   // Translation / TTS
   const [fromLang, setFromLang] = useState<Lang>("auto");
   const [toLang, setToLang] = useState<Lang>("auto");
-  const [translator, setTranslator] = useState<Translator>("mini-dict");
-  const [speakOnReceive, setSpeakOnReceive] = useState(true);
   const [ttsLang, setTtsLang] = useState<"auto"|"ja"|"en">("auto");
   const [ttsVoiceName, setTtsVoiceName] = useState<string>("");
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);

@@ -27,7 +27,7 @@ interface UserProfile {
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { currentUser: user } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [editing, setEditing] = useState(false);

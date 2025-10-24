@@ -7,7 +7,7 @@ import { generateUserQRId, generateQRCode, saveUserQRCode } from '../services/qr
 
 export default function MyQRCode() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { currentUser: user } = useAuth();
   const [qrCodeDataURL, setQrCodeDataURL] = useState<string>('');
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);

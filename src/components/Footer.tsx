@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-export default function Footer() {
+export default function Footer({ unreadCount }: { unreadCount: number }) {
   const navigate = useNavigate();
 
   return (
@@ -24,7 +24,12 @@ export default function Footer() {
       >
         <img src="/logo.png" alt="logo" className="w-10 h-10 object-contain" style={{marginTop: '-2px'}} />
       </button>
-      <button className="flex flex-col items-center"><img src="/icon_beru.png" alt="bell" className="w-7 h-7 object-contain" /></button>
+      <button onClick={() => navigate('/notifications')} className="relative flex flex-col items-center">
+        <img src="/icon_beru.png" alt="bell" className="w-7 h-7 object-contain" />
+        {unreadCount > 0 && (
+          <span className="absolute top-0 right-0 block h-3 w-3 rounded-full bg-red-500" />
+        )}
+      </button>
       <button 
         onClick={() => navigate('/settings')}
         className="flex flex-col items-center hover:opacity-80 transition-opacity"

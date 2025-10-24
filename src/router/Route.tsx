@@ -14,6 +14,7 @@ import Reception from '../components/Reception';
 import FriendList from '../components/FriendList';
 import MessageScreen from '../components/MessageScreen';
 import CallScreen from '../components/CallScreen'; // 追加
+import NotificationScreen from '../components/NotificationScreen'; // 追加
 import App from '../App';
 import Answer from '../Answer';
 
@@ -29,7 +30,7 @@ function ReceptionPage() {
 
 // 認証が必要なルートの保護
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { currentUser, loading } = useAuth();
 
   if (loading) {
     return (
@@ -44,7 +45,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return user ? <>{children}</> : <Navigate to="/" replace />;
+  return currentUser ? <>{children}</> : <Navigate to="/" replace />;
 }
 
 import { WebRTCProvider } from '../contexts/WebRTCContext';
@@ -76,6 +77,7 @@ function AppRoutes() {
       <Route path="/qr-scanner" element={<ProtectedRoute><QRScanner /></ProtectedRoute>} />
       <Route path="/my-qr-code" element={<ProtectedRoute><MyQRCode /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><MainLayout><Settings /></MainLayout></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute><NotificationScreen /></ProtectedRoute>} />
 
       {/* 通話画面 (専用レイアウト) */}
       <Route path="/caller" element={<ProtectedRoute><CallerPage /></ProtectedRoute>} />

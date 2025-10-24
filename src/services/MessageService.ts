@@ -216,6 +216,35 @@ class MessageService {
 
     return unsubscribe;
   }
+
+  // 未読メッセージを監視
+  watchUnreadMessages(userId: string, callback: (messages: Message[]) => void) {
+    const messagesQuery = query(
+      this.messagesRef,
+      orderByChild('receiverId'),
+    );
+
+    const unsubscribe = onValue(messagesQuery, (snapshot) => {
+      try {
+        const messages = snapshot.val();
+        if (!messages) {
+          callback([]);
+          return;
+        }
+
+        const unreadMessages = Object.values(messages).filter((message: any) =>
+          message.receiverId === userId && !message.isRead
+        ) as Message[];
+        
+        callback(unreadMessages);
+      } catch (error) {
+        console.error('未読メッセージの監視エラー:', error);
+        callback([]);
+      }
+    });
+
+    return unsubscribe;
+  }
 }
 
 export const messageService = new MessageService();

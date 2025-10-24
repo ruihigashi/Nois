@@ -9,7 +9,7 @@ import { hybridCallService } from '../services/HybridCallService';
 export default function MessageScreen() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { currentUser: user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);

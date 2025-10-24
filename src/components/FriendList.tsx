@@ -9,7 +9,7 @@ import Footer from './Footer';
 
 export default function FriendList() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { currentUser: user } = useAuth();
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastMessages, setLastMessages] = useState<Record<string, Message | null>>({});
