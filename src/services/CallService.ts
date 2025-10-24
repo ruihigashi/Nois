@@ -8,6 +8,7 @@ export interface CallRoom {
   status: 'ringing' | 'answered' | 'rejected' | 'ended';
   sdpOffer?: string;
   sdpAnswer?: string;
+  iceCandidates?: { [key: string]: any };
   createdAt: number;
   callerName?: string;
   friendName?: string;
@@ -80,6 +81,13 @@ class CallService {
   // SDPアンサーを保存
   async saveSdpAnswer(roomId: string, sdpAnswer: string) {
     await set(ref(database, `callRooms/${roomId}/sdpAnswer`), sdpAnswer);
+  }
+
+  // ICE候補を追加
+  async addIceCandidate(roomId: string, candidate: RTCIceCandidateInit, role: 'caller' | 'answerer') {
+    const candidatesRef = ref(database, `callRooms/${roomId}/iceCandidates/${role}`);
+    const newCandidateRef = push(candidatesRef);
+    await set(newCandidateRef, candidate);
   }
 
   // 通話ルームの状態を監視

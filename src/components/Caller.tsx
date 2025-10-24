@@ -1,138 +1,56 @@
-import React, { useRef, useState } from "react";
+import React from "react";
 
 interface CallerProps {
-  // WebRTC関連
   pc: RTCPeerConnection | null;
-  localSDPRef: React.RefObject<HTMLTextAreaElement>;
-  remoteSDPRef: React.RefObject<HTMLTextAreaElement>;
   localStreamRef: React.RefObject<MediaStream | null>;
-  
-  // 通話情報
   roomId?: string;
   friendName?: string;
-  
-  // 状態管理
+  friendProfileImageUrl?: string;
   micEnabled: boolean;
-  micMuted: boolean;
   isInCall: boolean;
-  creatingOffer: boolean;
-  settingRemote: boolean;
-  copiedLocal: boolean;
-  showLocalSDP: boolean;
-  showRemoteSDP: boolean;
-  showConnectionUI: boolean;
-  showMediaUI: boolean;
-  
-  // 関数
+  micMuted: boolean;
   startMic: () => Promise<void>;
   stopMic: () => void;
-  endCall: () => void;
-  createOffer: () => Promise<void>;
-  setRemoteDescriptionManual: () => Promise<void>;
-  showToast: (msg: string) => void;
-  
-  // 設定
+  endCall: (updateDb?: boolean) => void;
+  toggleMute: () => void;
   forcedRole?: "caller" | "answerer";
 }
 
 export default function Caller({
-  pc,
-  localSDPRef,
-  remoteSDPRef,
-  localStreamRef,
-  roomId,
   friendName,
-  micEnabled,
-  micMuted,
+  friendProfileImageUrl,
   isInCall,
-  creatingOffer,
-  settingRemote,
-  copiedLocal,
-  showLocalSDP,
-  showRemoteSDP,
-  showConnectionUI,
-  showMediaUI,
-  startMic,
-  stopMic,
+  micMuted,
   endCall,
-  createOffer,
-  setRemoteDescriptionManual,
-  showToast,
-  forcedRole
+  toggleMute
 }: CallerProps) {
   return (
-    <div>
-      {/* 発信中表示 */}
-      {roomId && !isInCall && (
-        <div className="text-center mb-4">
-          <div className="text-white text-lg font-semibold mb-2">
-            {friendName ? `${friendName}さんに発信中...` : '発信中...'}
-          </div>
-          <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-          </div>
+    <div className="w-full h-full flex flex-col items-center justify-center text-white p-4">
+      <div className="flex-1 flex flex-col items-center justify-center">
+        <div className="w-32 h-32 rounded-full bg-gray-600 mb-6 overflow-hidden flex items-center justify-center">
+          {friendProfileImageUrl ? (
+            <img src={friendProfileImageUrl} alt={friendName} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-5xl text-gray-400">👤</span>
+          )}
         </div>
-      )}
-      
-      <div className={`${micEnabled ? 'flex flex-wrap items-center gap-2' : 'flex justify-center'} mt-2 mb-3`}>
-        <button onClick={micEnabled?stopMic:startMic} className={"px-3 py-2 text-white text-lg font-medium border rounded " + (micEnabled ? "bg-red-600 border-red-600" : "bg-blue-600 border-blue-600")}>
-          {micEnabled ? "Call Stop" : "Call Start "}
-        </button>
+        <h2 className="text-3xl font-bold mb-2">{friendName || 'Unknown'}</h2>
+        <p className="text-lg text-white/70">
+          {isInCall ? '通話中' : '発信中...'}
+        </p>
       </div>
 
-      {micEnabled && (
-        <>
-          {isInCall && (
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              <button onClick={endCall} className="px-3 py-2 text-white text-sm font-medium border rounded bg-red-700 border-red-700">
-                通話終了
-              </button>
-              <div className="text-sm text-green-600 bg-green-50 px-2 py-1 border border-green-300 font-medium">
-                🎤 通話中
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-3">
-            {/* Local SDP - Call側のみ段階的に表示 */}
-            {showLocalSDP && (
-              <div>
-                <h3 className="font-medium text-gray-700 mb-2 text-sm">Pairing Code</h3>
-                <div className="relative">
-                  <textarea 
-                    ref={localSDPRef} 
-                    className="w-full h-16 border border-gray-300 p-2 text-sm font-mono bg-gray-50" 
-                    readOnly 
-                    placeholder="Tap 'Create' to generate an authentication code and send it to the other person."
-                  />
-                  <button
-                    onClick={async ()=>{ try{ await navigator.clipboard.writeText(localSDPRef.current?.value||""); showToast("Local SDP copied"); setTimeout(()=>{},1200);}catch{} }}
-                    className={"absolute top-2 right-2 px-2 py-1 text-white text-sm border " + (copiedLocal ? "bg-green-600 border-green-600" : "bg-gray-600 border-gray-600")}
-                  >{copiedLocal?"Copied!":"Copy"}</button>
-                </div>
-                <div className="flex justify-center mt-2">
-                  <button onClick={createOffer} disabled={creatingOffer} className={"px-6 py-2 text-white text-lg font-medium border rounded min-w-32 " + (creatingOffer ? "bg-indigo-400 border-indigo-400 cursor-not-allowed" : "bg-indigo-600 border-indigo-600")}>
-                    {creatingOffer ? "Creating..." : "Create"}
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            {/* Remote SDP - Call側のみ段階的に表示 */}
-            {showRemoteSDP && (
-              <div>
-                <h3 className="font-medium text-gray-700 mb-2 text-sm">Paste Pairing Code</h3>
-                <textarea ref={remoteSDPRef} className="w-full h-16 border border-gray-300 p-2 text-sm font-mono bg-gray-50" placeholder="Paste the pairing code here." />
-                <div className="flex justify-center mt-2">
-                  <button onClick={setRemoteDescriptionManual} disabled={settingRemote} className={"px-6 py-2 text-white text-lg font-medium border rounded min-w-32 " + (settingRemote ? "bg-indigo-400 border-indigo-400 cursor-not-allowed" : "bg-indigo-600 border-indigo-600")}>
-                    {settingRemote ? "Setting..." : "Start a call"}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </>
-      )}
+      {/* コントロールボタン */}
+      <div className="flex items-center gap-6 p-4">
+        <button onClick={toggleMute} className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${micMuted ? 'bg-white/50' : 'bg-white/20'}`}>
+          <img src={micMuted ? '/notmic-icon.png' : '/mic-icon.png'} alt="Mute" className="w-8 h-8" />
+        </button>
+        <button onClick={() => endCall(true)} className="w-20 h-20 rounded-full flex items-center justify-center bg-red-500 hover:bg-red-600 transition-all">
+          <img src="/phone-icon.png" alt="End Call" className="w-10 h-10 transform -rotate-45" />
+        </button>
+        {/* スピーカーボタンは後で実装 */}
+        <div className="w-16 h-16"></div>
+      </div>
     </div>
   );
 }

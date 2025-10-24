@@ -17,6 +17,8 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 p-2 md:p-4 overflow-hidden relative">
+
+
       {/* ヘッダー */}
       <header className="flex items-center justify-between px-2 pt-2 pb-2 mb-6 border-b border-slate-200 overflow-visible relative z-10">
         <div className="flex items-center">
@@ -59,29 +61,7 @@ export default function Settings() {
           </div>
       </main>
 
-      {/* ナビゲーションバー（フッター） */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/10 backdrop-blur-md border-t border-blue-300/30 flex justify-around items-center h-16 z-20">
-        <button
-          onClick={() => navigate('/home')}
-          className="flex flex-col items-center hover:opacity-80 transition-opacity"
-        >
-          <img src="/home.png" alt="home" className="w-7 h-7 object-contain" />
-        </button>
-        <button className="flex flex-col items-center"><img src="/discover-icon.png" alt="discover" className="w-7 h-7 object-contain" /></button>
-        <button
-          onClick={() => navigate('/caller')}
-          className="flex flex-col items-center justify-center hover:opacity-80 transition-opacity"
-        >
-          <img src="/logo.png" alt="logo" className="w-10 h-10 object-contain" style={{ marginTop: '-2px' }} />
-        </button>
-        <button className="flex flex-col items-center"><img src="/icon_beru.png" alt="bell" className="w-7 h-7 object-contain" /></button>
-        <button
-          onClick={() => navigate('/settings')}
-          className="flex flex-col items-center hover:opacity-80 transition-opacity"
-        >
-          <img src="/icon-settings.png" alt="settings" className="w-7 h-7 object-contain" />
-        </button>
-      </nav>
+
     </div>
   );
 }

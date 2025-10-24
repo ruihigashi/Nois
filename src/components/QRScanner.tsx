@@ -10,12 +10,12 @@ export default function QRScanner() {
   const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState('');
   const [scannedUser, setScannedUser] = useState<any>(null);
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
-  const [qrScanner, setQrScanner] = useState<any>(null);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -28,11 +28,15 @@ export default function QRScanner() {
     startCamera();
     fetchMyQRId();
     return () => {
+      console.log("QRScanner cleanup: Stopping camera and interval.");
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
-      if (qrScanner) {
-        qrScanner.stop();
+      console.log("QRScanner cleanup: Interval ID is", scanIntervalRef.current);
+      if (scanIntervalRef.current) {
+        clearInterval(scanIntervalRef.current);
+        console.log("QRScanner cleanup: Interval cleared.");
+        scanIntervalRef.current = null;
       }
     };
   }, []);
@@ -86,22 +90,15 @@ export default function QRScanner() {
     if (videoRef.current) {
       const video = videoRef.current;
       
-      // より確実なQRコード検出のためのタイマー
-      const scanInterval = setInterval(() => {
-        if (!isScanning) {
-          clearInterval(scanInterval);
-          return;
-        }
-        
+      if (scanIntervalRef.current) {
+        clearInterval(scanIntervalRef.current);
+      }
+
+      scanIntervalRef.current = setInterval(() => {
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
-          // 実際のQRコード検出はここで実装
-          // 現在は手動入力でテスト
           console.log('QRコードスキャン中...');
         }
       }, 500);
-      
-      // クリーンアップ用に保存
-      setQrScanner(scanInterval);
     }
   };
 
@@ -109,6 +106,9 @@ export default function QRScanner() {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
+    }
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
     }
     setIsScanning(false);
   };

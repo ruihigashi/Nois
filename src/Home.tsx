@@ -4,7 +4,6 @@ import { useAuth } from "./contexts/AuthContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebase/config";
-import Footer from './components/Footer';
 
 const icons = {
   user: <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 8-4 8-4s8 0 8 4"/></svg>,
@@ -199,6 +198,8 @@ export default function Home() {
           top: '220px'
         }}
       />
+
+
       {/* ヘッダー */}
       <header className="flex items-center justify-between px-4 pt-4 pb-2 mb-6 border-b border-slate-200 overflow-visible relative z-10">
         <div className="flex items-center">
@@ -234,11 +235,20 @@ export default function Home() {
             <img src="/discover-icon.png" alt="friend" className="w-8 h-8 object-contain" />
             <span className="text-2xl font-extrabold bg-gradient-to-r from-cyan-300 to-blue-200 bg-clip-text text-transparent tracking-tight">Chat</span>
           </button>
-
+          <div className="w-full max-w-sm grid grid-cols-2 gap-4">
+            <button onClick={() => navigate('/caller')} className="flex flex-row items-center justify-center border-2 border-blue-300/50 rounded-xl py-3 bg-white/10 backdrop-blur-sm shadow-md active:scale-95 transition-all gap-2">
+              <img src="/call-icon.png" alt="call" className="w-10 h-9 object-contain" />
+              <span className="text-xl font-extrabold bg-gradient-to-r from-blue-200 to-cyan-300 bg-clip-text text-transparent">Call</span>
+            </button>
+            <button onClick={() => navigate('/reception')} className="flex flex-row items-center justify-center border-2 border-blue-300/50 rounded-xl py-3 bg-white/10 backdrop-blur-sm shadow-md active:scale-95 transition-all gap-2">
+              <img src="/reception-icon.png" alt="reception" className="w-10 h-10 object-contain" />
+              <span className="text-xl font-extrabold bg-gradient-to-r from-purple-200 to-pink-300 bg-clip-text text-transparent">Reception</span>
+            </button>
+          </div>
         </div>
       </main>
 
-      <Footer />
+
 
       {/* プロフィールモーダル */}
       {showProfileModal && (

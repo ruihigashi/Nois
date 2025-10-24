@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ref, get } from 'firebase/database';
-import { database } from '../firebase/config';
 import { hybridCallService, CallRoom } from '../services/HybridCallService';
 
 interface UseAutoCallProps {
@@ -25,178 +23,152 @@ export function useAutoCall({
   const [incomingCall, setIncomingCall] = useState<any>(null);
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
   const [isCallActive, setIsCallActive] = useState(false);
-  const unsubscribeRef = useRef<(() => void) | null>(null);
-
-  // 着信状態のデバッグログ
-  useEffect(() => {
-    console.log('着信状態が変更されました:', { incomingCall, currentRoomId, isCallActive });
-  }, [incomingCall, currentRoomId, isCallActive]);
+  const [processedIceCandidates, setProcessedIceCandidates] = useState<{[key: string]: boolean}>({});
 
   // 着信通知を監視
   useEffect(() => {
     if (!userId) return;
-
-    const unsubscribe = hybridCallService.watchIncomingCall(userId, (incomingCall) => {
-      console.log('着信通知を受信:', incomingCall);
-      setIncomingCall(incomingCall);
+    const unsubscribe = hybridCallService.watchIncomingCall(userId, (call) => {
+      if (call) {
+        setIncomingCall(call);
+      }
     });
-
-    return () => {
-      console.log('着信監視を停止');
-      unsubscribe();
-      // コンポーネントアンマウント時に着信状態をクリア
-      setIncomingCall(null);
-    };
+    return () => unsubscribe();
   }, [userId]);
 
-  // 通話ルームの状態を監視
+  // 通話ルームの状態を監視し、シグナリングを処理
   useEffect(() => {
-    if (!currentRoomId) return;
+    if (!currentRoomId || !pc) return;
 
-    const unsubscribe = hybridCallService.watchCallRoom(currentRoomId, (room: CallRoom | null) => {
+    const unsubscribe = hybridCallService.watchCallRoom(currentRoomId, async (room: CallRoom | null) => {
       if (!room) return;
 
-      if (room.status === 'answered' && !isCallActive) {
-        // 通話が応答されたら自動でSDP交換を開始
-        handleCallAnswered(room);
-      } else if (room.status === 'rejected' || room.status === 'ended') {
-        // 通話が拒否または終了されたら
-        handleCallEnded();
+      // 相手が応答し、Answerがまだ設定されていない場合
+      if (room.sdpAnswer && pc.remoteDescription?.type !== 'answer') {
+        try {
+          await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(room.sdpAnswer)));
+          console.log('Answer設定完了');
+        } catch (error) {
+          console.error('Answer設定エラー:', error);
+        }
+      }
+
+      // 相手のICE候補を処理
+      const role = room.callerId === userId ? 'answerer' : 'caller';
+      if (room.iceCandidates && room.iceCandidates[role]) {
+        const candidates = room.iceCandidates[role];
+        for (const key in candidates) {
+          if (!processedIceCandidates[key]) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(candidates[key]));
+              setProcessedIceCandidates(prev => ({ ...prev, [key]: true }));
+              console.log('相手のICE候補を追加:', candidates[key]);
+            } catch (error) {
+              console.error('ICE候補追加エラー:', error);
+            }
+          }
+        }
+      }
+
+      // 通話終了/拒否
+      if (room.status === 'rejected' || room.status === 'ended') {
+        endCall(false); // DB更新は不要
       }
     });
 
-    return () => {
-      unsubscribe();
-    };
-  }, [currentRoomId, isCallActive]);
-
-  // 通話に応答
-  const handleCallAnswered = async (room: CallRoom) => {
-    if (!pc || !localStreamRef.current) return;
-
-    try {
-      // 音声ストリームを追加
-      localStreamRef.current.getAudioTracks().forEach(track => {
-        pc.addTrack(track, localStreamRef.current!);
-      });
-
-      // 相手がCallerの場合、Answerを作成
-      if (room.callerId !== userId) {
-        await createAnswer(room);
-      } else {
-        // 自分がCallerの場合、Offerを待つ
-        await waitForOffer(room);
-      }
-
-      setIsCallActive(true);
-      onCallConnected();
-    } catch (error) {
-      console.error('通話接続エラー:', error);
-    }
-  };
-
-  // Answerを作成
-  const createAnswer = async (room: CallRoom) => {
-    if (!pc || !room.sdpOffer) return;
-
-    try {
-      // 相手のOfferを設定
-      await pc.setRemoteDescription(JSON.parse(room.sdpOffer));
-      
-      // Answerを作成
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      
-      // Answerを保存
-      await hybridCallService.updateCallRoomStatus(room.id, 'answered');
-    } catch (error) {
-      console.error('Answer作成エラー:', error);
-    }
-  };
-
-  // Offerを待つ
-  const waitForOffer = async (room: CallRoom) => {
-    if (!pc) return;
-
-    try {
-      // DataChannelを作成
-      const dataChannel = pc.createDataChannel('captions');
-      
-      // Offerを作成
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      
-      // Offerを保存
-      await hybridCallService.updateCallRoomStatus(room.id, 'answered');
-      
-      // Answerを待つ
-      const checkForAnswer = setInterval(async () => {
-        const updatedRoom = await get(ref(database, `callRooms/${room.id}`));
-        const roomData = updatedRoom.val();
-        
-        if (roomData?.sdpAnswer) {
-          clearInterval(checkForAnswer);
-          await pc.setRemoteDescription(JSON.parse(roomData.sdpAnswer));
-        }
-      }, 1000);
-    } catch (error) {
-      console.error('Offer作成エラー:', error);
-    }
-  };
-
-  // 通話終了処理
-  const handleCallEnded = () => {
-    setIsCallActive(false);
-    setCurrentRoomId(null);
-    onCallEnded();
-  };
+    return () => unsubscribe();
+  }, [currentRoomId, pc, processedIceCandidates, userId]);
 
   // 着信に応答
   const answerCall = async () => {
-    if (!incomingCall) return;
+    if (!incomingCall || !pc || !localStreamRef.current) return;
 
-    try {
-      await hybridCallService.updateCallRoomStatus(incomingCall.roomId, 'answered');
-      await hybridCallService.clearIncomingCall(userId);
-      setCurrentRoomId(incomingCall.roomId);
-      setIncomingCall(null);
-    } catch (error) {
-      console.error('着信応答エラー:', error);
-      setIncomingCall(null);
+    const { roomId, callerId } = incomingCall;
+    setCurrentRoomId(roomId);
+    setProcessedIceCandidates({});
+
+    // 相手（発信者）のICE候補をリッスン
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        hybridCallService.addIceCandidate(roomId, event.candidate.toJSON(), 'answerer');
+      }
+    };
+
+    // 自分のメディアトラックを接続に追加
+    localStreamRef.current.getTracks().forEach(track => {
+      pc.addTrack(track, localStreamRef.current!);
+    });
+
+    // Firestoreからルーム情報を一度だけ取得してOfferをセット
+    const room = await hybridCallService.getCallRoom(roomId);
+    if (room && room.sdpOffer) {
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(room.sdpOffer)));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        await hybridCallService.saveSdpAnswer(roomId, JSON.stringify(answer));
+        await hybridCallService.answerCall(roomId, userId);
+        setIsCallActive(true);
+        onCallConnected();
+      } catch (error) {
+        console.error('Answer処理エラー:', error);
+      }
     }
+    setIncomingCall(null);
   };
 
   // 着信を拒否
   const rejectCall = async () => {
     if (!incomingCall) return;
-
-    try {
-      await hybridCallService.updateCallRoomStatus(incomingCall.roomId, 'rejected');
-      await hybridCallService.clearIncomingCall(userId);
-      setIncomingCall(null);
-    } catch (error) {
-      console.error('着信拒否エラー:', error);
-      setIncomingCall(null);
-    }
+    await hybridCallService.rejectCall(incomingCall.roomId, userId);
+    setIncomingCall(null);
   };
 
   // 通話を開始
   const startCall = async (friendId: string, friendName: string) => {
+    if (!pc || !localStreamRef.current) return;
+
+    const roomId = await hybridCallService.createCallRoom(userId, friendId, userName, friendName);
+    setCurrentRoomId(roomId);
+    setProcessedIceCandidates({});
+
+    // 相手（応答者）のICE候補をリッスン
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        hybridCallService.addIceCandidate(roomId, event.candidate.toJSON(), 'caller');
+      }
+    };
+
+    // 自分のメディアトラックを接続に追加
+    localStreamRef.current.getTracks().forEach(track => {
+      pc.addTrack(track, localStreamRef.current!);
+    });
+
     try {
-      const roomId = await hybridCallService.createCallRoom(userId, friendId, userName, friendName);
-      setCurrentRoomId(roomId);
-      navigate(`/caller?roomId=${roomId}`);
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await hybridCallService.saveSdpOffer(roomId, JSON.stringify(offer));
+      setIsCallActive(true);
+      onCallConnected();
+      navigate(`/caller?roomId=${roomId}&friendName=${friendName}`);
     } catch (error) {
-      console.error('通話開始エラー:', error);
+      console.error('Offer作成エラー:', error);
     }
   };
 
   // 通話を終了
-  const endCall = async () => {
-    if (currentRoomId) {
-      await hybridCallService.endCall(currentRoomId);
+  const endCall = async (updateDb = true) => {
+    if (isCallActive) {
+      if (currentRoomId && updateDb) {
+        await hybridCallService.endCall(currentRoomId);
+      }
+      setIsCallActive(false);
+      setCurrentRoomId(null);
+      setProcessedIceCandidates({});
+      pc?.close(); // ピア接続を閉じる
+      onCallEnded();
+      navigate('/friends'); // 通話終了後はフレンドリストに戻る
     }
-    handleCallEnded();
   };
 
   return {

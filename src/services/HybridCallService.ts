@@ -21,7 +21,7 @@ export interface IncomingCall {
 }
 
 class HybridCallService {
-  private useFirebase = false; // ローカルストレージを優先使用
+  private useFirebase = true; // Firebaseを優先使用
 
   // 通話ルームを作成
   async createCallRoom(callerId: string, friendId: string, callerName: string, friendName: string): Promise<string> {

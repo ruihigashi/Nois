@@ -47,88 +47,55 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return user ? <>{children}</> : <Navigate to="/" replace />;
 }
 
+import { WebRTCProvider } from '../contexts/WebRTCContext';
+
+import MainLayout from '../components/MainLayout';
+
+// ... (other imports)
+
 function AppRoutes() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* ログイン画面 */}
-        <Route path="/" element={<Login />} />
-        
-        {/* 電話番号認証画面 */}
-        <Route path="/phone-auth" element={<PhoneAuth />} />
-        
-        {/* メール・パスワード登録画面 */}
-        <Route path="/email-password" element={<EmailPassword />} />
-        
-        {/* アカウント作成画面 */}
-        <Route path="/signup" element={<SignUp />} />
-        
-        {/* 認証が必要な画面 */}
-        <Route path="/home" element={
-          <ProtectedRoute>
-            <Home />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/caller" element={
-          <ProtectedRoute>
-            <CallerPage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/reception" element={
-          <ProtectedRoute>
-            <ReceptionPage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/friends" element={
-          <ProtectedRoute>
-            <FriendList />
-          </ProtectedRoute>
-        } />
+    <Routes>
+      {/* ログイン画面 */}
+      <Route path="/" element={<Login />} />
+      
+      {/* 電話番号認証画面 */}
+      <Route path="/phone-auth" element={<PhoneAuth />} />
+      
+      {/* メール・パスワード登録画面 */}
+      <Route path="/email-password" element={<EmailPassword />} />
+      
+      {/* アカウント作成画面 */}
+      <Route path="/signup" element={<SignUp />} />
+      
+      {/* 認証と共通レイアウトが必要な画面 */}
+      <Route path="/home" element={<ProtectedRoute><MainLayout><Home /></MainLayout></ProtectedRoute>} />
+      <Route path="/friends" element={<ProtectedRoute><MainLayout><FriendList /></MainLayout></ProtectedRoute>} />
+      <Route path="/call-screen" element={<ProtectedRoute><MainLayout><CallScreen /></MainLayout></ProtectedRoute>} />
+      <Route path="/message" element={<ProtectedRoute><MessageScreen /></ProtectedRoute>} />
+      <Route path="/qr-scanner" element={<ProtectedRoute><QRScanner /></ProtectedRoute>} />
+      <Route path="/my-qr-code" element={<ProtectedRoute><MyQRCode /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><MainLayout><Settings /></MainLayout></ProtectedRoute>} />
 
-        <Route path="/call-screen" element={ // 追加
-          <ProtectedRoute>
-            <CallScreen />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/message" element={
-          <ProtectedRoute>
-            <MessageScreen />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/qr-scanner" element={
-          <ProtectedRoute>
-            <QRScanner />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/my-qr-code" element={
-          <ProtectedRoute>
-            <MyQRCode />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/settings" element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        } />
-        
-        {/* デフォルトルート（存在しないパスの場合はログインにリダイレクト） */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+      {/* 通話画面 (専用レイアウト) */}
+      <Route path="/caller" element={<ProtectedRoute><CallerPage /></ProtectedRoute>} />
+      <Route path="/reception" element={<ProtectedRoute><ReceptionPage /></ProtectedRoute>} />
+      
+      {/* デフォルトルート */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
+// ... (rest of the file)
 export default function AppRoutesWithAuth() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <BrowserRouter>
+        <WebRTCProvider>
+          <AppRoutes />
+        </WebRTCProvider>
+      </BrowserRouter>
     </AuthProvider>
   );
 }

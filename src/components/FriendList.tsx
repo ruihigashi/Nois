@@ -94,18 +94,29 @@ export default function FriendList() {
     navigate(`/message?${params.toString()}`);
   };
 
-  return (
-    <div className="h-screen max-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 p-2 md:p-4 overflow-hidden relative">
-      {/* ヘッダー */}
-      <Header 
-        headerTitle="Chat" 
-        page="home" 
-        onBack={() => navigate('/home')} 
-        onSettingsClick={() => {}} 
-        onPlusClick={handlePlusClick}
-      />
+    return (
 
-      {/* メインコンテンツエリア */}
+      <div className="h-screen max-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 p-2 md:p-4 overflow-hidden relative">
+
+        {/* ヘッダー */}
+
+        <Header 
+
+          headerTitle="Chat" 
+
+          page="home" 
+
+          onBack={() => navigate('/home')} 
+
+          onSettingsClick={() => {}} 
+
+          onPlusClick={handlePlusClick}
+
+        />
+
+  
+
+        {/* メインコンテンツエリア */}
       <main className="flex-1 bg-white/5 backdrop-blur-sm relative z-10 p-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">
@@ -152,8 +163,7 @@ export default function FriendList() {
         )}
       </main>
       
-      {/* ナビゲーションバー（フッター） */}
-      <Footer />
+
     </div>
   );
 }
