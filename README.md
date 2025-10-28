@@ -1,85 +1,124 @@
+<div id="top"></div>
 
-# Manual WebRTC Voice Call with Captions (Tabs Version)
+## 使用技術一覧
 
+<p style="display: inline">
+  <img src="https://img.shields.io/badge/-React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB">
+  <img src="https://img.shields.io/badge/-Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white">
+  <img src="https://img.shields.io/badge/-TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white">
+  <img src="https://img.shields.io/badge/-TailwindCSS-000000.svg?logo=tailwindcss&style=for-the-badge">
+  <img src="https://img.shields.io/badge/-Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=white">
+</p>
 
-## セットアップ
+## 目次
 
-```bash
-npm install
-npm run dev
+1. [プロジェクトについて](#プロジェクトについて)
+2. [環境](#環境)
+3. [ディレクトリ構成](#ディレクトリ構成)
+4. [開発環境構築](#開発環境構築)
+
+<br />
+
+## プロジェクト名
+
+nois
+
+## プロジェクトについて
+
+WebRTCを利用したリアルタイムコミュニケーションアプリケーションです。
+
+<p align="right">(<a href="#top">トップへ</a>)</p>
+
+## 環境
+
+| 言語・フレームワーク | バージョン |
+| --------------------- | ---------- |
+| React                 | 18.2.0     |
+| Vite                  | 5.3.1      |
+| TypeScript            | 5.4.5      |
+| Tailwind CSS          | 3.4.7      |
+| Firebase              | 12.2.1     |
+
+その他のパッケージのバージョンは `package.json` を参照してください
+
+<p align="right">(<a href="#top">トップへ</a>)</p>
+
+## ディレクトリ構成
+
+```
+.
+├── firebase-rules.md
+├── index.html
+├── package.json
+├── postcss.config.js
+├── README.md
+├── tailwind.config.js
+├── tsconfig.json
+├── vite.config.ts
+├── functions/
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── src/
+│       └── index.ts
+├── public/
+│   ├── app-icon.png
+│   ├── ... (other assets)
+│   └── user-add.png
+└── src/
+    ├── Answer.tsx
+    ├── App.tsx
+    ├── Home.tsx
+    ├── index.css
+    ├── main.tsx
+    ├── translate.ts
+    ├── vite-env.d.ts
+    ├── components/
+    │   ├── CallConfirmModal.tsx
+    │   ├── ... (other components)
+    │   └── SignUp.tsx
+    ├── contexts/
+    │   ├── AuthContext.tsx
+    │   └── WebRTCContext.tsx
+    ├── firebase/
+    │   └── config.ts
+    ├── hooks/
+    │   └── useAutoCall.ts
+    ├── router/
+    │   └── Route.tsx
+    └── services/
+        ├── CallService.ts
+        ├── ... (other services)
+        └── userService.ts
 ```
 
-ブラウザで http://localhost:5173 を開きます。
+<p align="right">(<a href="#top">トップへ</a>)</p>
 
-⸻
+## 開発環境構築
 
-## 使い方（手動シグナリング）
+### 必要なもの
+* Node.js
+* npm
 
-1. 2つのブラウザを用意
-	•	タブを2つ開く、または別のPC/スマホで開く
+### 手順
+1. **パッケージのインストール**
+   ```sh
+   npm install
+   ```
 
-2. Caller 側
-	•	Role を Caller にする
-	•	「Create Offer」を押す
-	•	Local SDP が出力されるのでコピーして Answerer に渡す
+2. **開発サーバーの起動**
+   ```sh
+   npm run dev
+   ```
+   http://localhost:5173 で開発サーバーが起動します。
 
-3. Answerer 側
-	•	Role を Answerer にする
-	•	受け取った Offer JSON を Remote SDP に貼り付け
-	•	「Paste Offer → Create Answer」を押す
-	•	Local SDP が出力されるのでコピーして Caller に渡す
+3. **ビルド**
+   ```sh
+   npm run build
+   ```
 
-4. Caller 側（続き）
-	•	受け取った Answer JSON を Remote SDP に貼り付け
-	•	「Set Remote Description」を押す
+4. **ビルドのプレビュー**
+    ```sh
+    npm run preview
+    ```
 
-5. 双方で接続完了
-	•	ヘッダーのステータスが
-PC: connected / ICE: connected / DC: open になれば接続成功
-
-⸻
-
-## 音声通話
-	•	双方で 「Start Mic」 を押すとリアルタイム音声通話が開始
-	•	「Mute」で自分のマイクを一時停止
-	•	リモート音声 はページ内の <audio> プレイヤーで再生
-
-⸻
-
-## 字幕（DataChannel）
-	•	入力欄にテキストを入れて Enter または Send ボタンで送信
-	•	相手に字幕として表示される
-	•	DC: open 前に送信した字幕は Queue 状態でキューされ、Open 後に自動送信される
-	•	受信字幕は（設定次第で）自動的に TTS 読み上げ される
-
-⸻
-
-## 設定タブ
-
-翻訳
-	•	From: Auto / JA / EN
-	•	To: Auto / JA / EN
-	•	Translator: mini-dict（簡易辞書） / mock（タグ付け） / none（翻訳なし）
-
-TTS（受信字幕の読み上げ）
-	•	有効 / 無効チェック
-	•	言語: Auto（自動判定）、JA、EN
-	•	ブラウザが提供する音声一覧から Voice を選択
-	•	TTS Test ボタンで確認可能
-
-⸻
-
-## 注意事項
-	•	サーバ不要（STUNのみ使用）。NAT環境によっては接続できない場合あり → TURN サーバを iceServers に追加可能
-	•	ブラウザ自動再生制限 により、最初は操作後でないと音声が鳴らないことがあります
-	•	受信字幕の TTS はブラウザ依存（Chrome/Edge は日本語/英語対応、Safari は制限あり）
-
-⸻
-
-## プロジェクト構成
-
-src/
- ├─ App.tsx         # UI本体（通話 / 設定タブ）
- ├─ translate.ts    # 簡易翻訳ロジック
- ├─ main.tsx        # エントリーポイント
- └─ index.css       # Tailwind スタイル
+<p align="right">(<a href="#top">トップへ</a>)</p>
