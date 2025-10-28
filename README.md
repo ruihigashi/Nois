@@ -1,14 +1,19 @@
 <div id="top"></div>
 
-## 使用技術一覧
+## プロジェクト名
 
-<p style="display: inline">
-  <img src="https://img.shields.io/badge/-React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB">
-  <img src="https://img.shields.io/badge/-Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white">
-  <img src="https://img.shields.io/badge/-TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white">
-  <img src="https://img.shields.io/badge/-TailwindCSS-000000.svg?logo=tailwindcss&style=for-the-badge">
-  <img src="https://img.shields.io/badge/-Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=white">
-</p>
+Nois
+
+## プロジェクトについて
+
+リップリーディングを用いて無音で会話を実現するアプリケーションです。
+
+![EDDプレゼン資料](https://github.com/user-attachments/assets/cf73d928-f96c-4fdb-973e-636f2f1d7500)
+![EDDプレゼン資料 (1)](https://github.com/user-attachments/assets/f7de5baa-758a-4d21-a08d-55671e78bbf9)
+![EDDプレゼン資料 (2)](https://github.com/user-attachments/assets/8c759067-dd61-453b-9fcc-390e932f5dc7)
+
+
+
 
 ## 目次
 
@@ -19,13 +24,16 @@
 
 <br />
 
-## プロジェクト名
+## 使用技術一覧
 
-nois
+<p style="display: inline">
+  <img src="https://img.shields.io/badge/-React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB">
+  <img src="https://img.shields.io/badge/-Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white">
+  <img src="https://img.shields.io/badge/-TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white">
+  <img src="https://img.shields.io/badge/-TailwindCSS-000000.svg?logo=tailwindcss&style=for-the-badge">
+  <img src="https://img.shields.io/badge/-Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=white">
+</p>
 
-## プロジェクトについて
-
-WebRTCを利用したリアルタイムコミュニケーションアプリケーションです。
 
 <p align="right">(<a href="#top">トップへ</a>)</p>
 
